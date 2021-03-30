@@ -90,7 +90,7 @@ namespace Source
         }
         protected override void SetShaderParameters()
         {
-            ComponentComputeShader.SetMatrix("_CameraToWorld", RefCam.cameraToWorldMatrix);
+            ComponentComputeShader.SetMatrix("unity_CameraToWorld", RefCam.cameraToWorldMatrix);
             ComponentComputeShader.SetMatrix("_CameraInverseProjection", RefCam.projectionMatrix.inverse);
             ComponentComputeShader.SetVector("_PixelOffset", new Vector2(Random.value, Random.value));
             ComponentComputeShader.SetInt("_MaxBounce", MaxBounce);
