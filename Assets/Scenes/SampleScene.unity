@@ -295,13 +295,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
-  m_LocalRotation: {x: 0.21263108, y: -0.67437977, z: 0.21263108, w: 0.67437977}
-  m_LocalPosition: {x: 200, y: 100, z: 0}
+  m_LocalRotation: {x: 0.073912784, y: -0.7032332, z: 0.073912784, w: 0.7032332}
+  m_LocalPosition: {x: 342, y: 91, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 35, y: -90, z: 0}
+  m_LocalEulerAnglesHint: {x: 12, y: -90, z: 0}
 --- !u!114 &963194229
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -332,6 +332,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61224f6c4addb2d4fb97c51fa45a0d15, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  VSync: 1
   TargetFrameRate: -1
 --- !u!114 &963194231
 MonoBehaviour:
@@ -348,8 +349,12 @@ MonoBehaviour:
   ComponentComputeShader: {fileID: 7200000, guid: a795068e37b679344a17a087fff2c550, type: 3}
   SkyboxSrc: {fileID: 2800000, guid: f7087e3d0beb6f3408464d5ac3c43686, type: 3}
   DirectionalLight: {fileID: 705507994}
-  NumSpheresMax: 10000
-  SphereRad: {x: 5, y: 30}
+  NumSpheresMax: 1000000
+  SphereRad: {x: 5, y: 100}
   SpherePlacementRad: 100
-  MaxBounce: 10
+  MaxBounce: 8
   RandomSeed: 1223832719
+  PhongAlpha: 300
+  UsingSkybox: 0
+  SkyColor: {r: 1, g: 0.5424528, b: 0.97012657, a: 0}
+  LightingMode: 1

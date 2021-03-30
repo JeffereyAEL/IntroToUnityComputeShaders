@@ -32,11 +32,26 @@ namespace Source
 
         /// The seed for Unity's random engine
         public int RandomSeed;
+
+        /// Phong Shading Alpha
+        public float PhongAlpha = 15.0f;
+        
+        /// Whether we're sampling from the skybox texture
+        public bool UsingSkybox;
+
+        /// The color of the sky w/o a texture
+        public Color SkyColor;
+        
+        /// The type of lighting being used
+        public LightingType LightingMode;
         
         // PRIVATE
         /// the generated array of spheres from Awake vec4( vec3 pos, float radius)
         private ComputeBuffer SphereBuffer;
 
+        /// The amount of spheres currently in the SphereBuffer
+        private int SphereBufferSize;
+        
         /// The current sample; used to track anti-aliasing
         private uint CurrentSample = 0;
 
@@ -45,8 +60,6 @@ namespace Source
 
         /// The buffer used to accumulation
         private RenderTexture Converged;
-        
-        // TODO: make a material struct that can be attached to any shape / object
         
         /// <summary>
         /// A mirrored structure for the CS_RayTracing.compute shader
@@ -60,7 +73,17 @@ namespace Source
             public Vector3 Albedo;
             public Vector3 Specular;
         }
-    
+        
+        /// <summary>
+        /// The types of lighting the ray tracer can compute
+        /// </summary>
+        public enum LightingType
+        {
+            LambertDiffuse = 1,
+            PhongSpecular = 2,
+            ChanceDiffSpec = 3
+        }
+        
         /// <summary>
         /// Constructor for the Sphere struct
         /// </summary>
@@ -98,7 +121,13 @@ namespace Source
             ComponentComputeShader.SetVector("_DirectionalLight", 
                 new Vector4(l.x, l.y, l.z, DirectionalLight.intensity));
             ComponentComputeShader.SetBuffer(0, "_Spheres", SphereBuffer);
+            ComponentComputeShader.SetInt("_NumSpheres", SphereBufferSize); 
             ComponentComputeShader.SetFloat("_Seed", Random.value);
+            ComponentComputeShader.SetFloat("_PhongAlpha", PhongAlpha);
+            ComponentComputeShader.SetTexture(0, "_SkyboxTexture", SkyboxSrc);
+            ComponentComputeShader.SetInt("_LightingMode", (int)LightingMode);
+            ComponentComputeShader.SetFloat("_UsingSkybox", UsingSkybox ? 1.0f : 0.0f);
+            ComponentComputeShader.SetVector("_SkyColor", SkyColor);
         }
 
         protected override void OnRenderImage(RenderTexture src, RenderTexture output)
@@ -113,7 +142,7 @@ namespace Source
             // Set the target and dispatch the compute shader
             ComponentComputeShader.SetTexture(0, "Result", Result);
             
-            DispatchShader(ref ComponentComputeShader, 32, 32);
+            DispatchShader(ref ComponentComputeShader, 32.0f, 32.0f);
 
             // Blit the resulting texture to the screen
             if (AddMaterial == null)
@@ -156,11 +185,10 @@ namespace Source
                     temp.Add(new_sphere);
             }
             
-            // Shader Parameters that only need to be set on enable
-            ComponentComputeShader.SetTexture(0, "_SkyboxTexture", SkyboxSrc);
-            ComponentComputeShader.SetInt("_NumSpheres", temp.Count);    
+            // Compute the new Spheres buffer 
             SphereBuffer = new ComputeBuffer(temp.Count, 40);
             SphereBuffer.SetData(temp);
+            SphereBufferSize = temp.Count;
         }
         
     }

@@ -2,13 +2,14 @@
 #pragma kernel CSMain
 
 /// INCLUDES
+#pragma once
 // Our neat and tidy include package
-#include "Assets/Source/Shaders/UtilityShaders/UTIL_Generics.cginc"
 #include "Assets/Source/Shaders/UtilityShaders/UTIL_Graphics.cginc"
-#include "Assets/Source/Shaders/UtilityShaders/UTIL_Ray.cginc"
 
 /// DEFINES
-//#define IS_USING_SKYBOX 
+#define LAMBERT_DIFFUSE 1
+#define PHONG_SPECULAR 2
+#define CHANCE_DIFF_SPEC 3
 
 /// EXTERNS
 extern RWTexture2D<float4> Result;
@@ -21,17 +22,19 @@ extern uint _MaxBounce;
 extern float4 _DirectionalLight;
 extern StructuredBuffer<Sphere> _Spheres;
 extern uint _NumSpheres;
+extern uint _LightingMode;
+extern float3 _SkyColor;
+extern float _UsingSkybox;
 
 /// CONSTANTS
-static const float3 GROUND_ALBEDO = UNI_FlOAT3(0.85f);
-static const float3 GROUND_SPECULAR = UNI_FlOAT3(0.0f);
-static const float3 SKY_COLOR = float3(0.0f, 0.0f, 0.0f);
+static const float3 GROUND_ALBEDO = float3(1.0f, 1.0f, 1.0f);
+static const float3 GROUND_SPECULAR = float3(0.04f, 0.04f, 0.04f);
 
 /// GENERICS 
 void IntersectGroundPlane(Ray r, inout Hit best) {
     // calc the distance along the ray where the ground plane is intersected
     float t = -r.Origin.y / r.Dir.y;
-    if (t > 0.0f && t < best.Dist)
+    if (t > 0 && t < best.Dist)
     {
         best = Hit_Construct(r, t);
         best.Mat = Material_Construct(GROUND_ALBEDO, GROUND_SPECULAR);
@@ -52,35 +55,36 @@ Hit Trace(Ray r) {
 float3 Shade(inout Ray r, Hit h) {
     if (h.Dist < INF)   // We hit something
     {
-        r.Origin = h.Pos + h.Norm * 0.001f;
-        r.Dir = SampleHemisphere(h.Norm);
-        r.ColorWeight *= 2 * h.Mat.Albedo * sdot(h.Norm, r.Dir);
-        return UNI_FlOAT3(0.0f);
-
-        // // Shadowing
-        // bool shadow = false;
-        // Ray shadow_ray = Ray_Construct(h.Pos + h.Norm * 0.001f, -1 * _DirectionalLight.xyz);
-        // Hit shadow_hit = Trace(shadow_ray);
-        // if (shadow_hit.Dist != INF)
-        // {
-        //     
-        // }
-        //
-        // // real boi diffuse shading (lambert diffuse)
-        //
-        // return saturate(dot(h.Norm, _DirectionalLight.xyz) * -1) * _DirectionalLight.w * h.Mat.Albedo;
+        switch (_LightingMode)
+        {
+            case LAMBERT_DIFFUSE:
+                LambertDiffuse(r, h);
+                break;
+            case PHONG_SPECULAR:
+                PhongSpecular(r, h);
+                break;
+            case CHANCE_DIFF_SPEC:
+                ChanceDiffuseSpecular(r, h);
+                break;
+            default: // There is no default
+                break;
+        }
+        
+        // return nothing
+        return float3(0.0f, 0.0f, 0.0f);
     }
     
     // else, we hit nothing, return the skybox tex n zero energy, sky isn't reflective
     r.ColorWeight = 0.0f;
-#ifdef IS_USING_SKYBOX
+
+
+    // sample from the skybox
     float theta = acos(r.Dir.y) / -PI;
     float phi = atan2(r.Dir.x, -r.Dir.z) / -PI * 0.5f;
-    return _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float2(phi, theta), 0).xyz * 1.1f;
+    float3 tex = _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float2(phi, theta), 0.0f).xyz;
 
-#else
-    return SKY_COLOR;
-#endif
+    // blend sky color and skybox texture sample
+    return (_UsingSkybox * tex + (1.0f - _UsingSkybox) * _SkyColor) * 1.1f;
 }
 
 /// MAIN ===============================================================================================================
@@ -100,7 +104,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     Ray ray = Ray_FromCamera(uv);
 
     // trace and shader
-    float3 color = float3(0,0,0);
+    float3 color = float3(0, 0, 0);
     for (uint i = 0; i < _MaxBounce + 1; ++i)
     {
         Hit hit = Trace(ray);
