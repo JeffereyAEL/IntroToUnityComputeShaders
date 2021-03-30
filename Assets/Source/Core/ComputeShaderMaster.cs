@@ -44,33 +44,33 @@ namespace Source
             Graphics.Blit(Result, output);
         }
 
-        protected void DispatchShader(ref ComputeShader shader, float dividerX = 8.0f, float dividerY = 8.0f, int threadGroupsZ = 1,
+        protected void DispatchShader(ref ComputeShader Shader, float Divider_x = 8.0f, float Divider_y = 8.0f, int Thread_groups_z = 1,
             int kernalIndex = 0)
         {
-            int threadGroupsX = Mathf.CeilToInt(Screen.width / dividerX);
-            int threadGroupsY = Mathf.CeilToInt(Screen.height / dividerY);
-            shader.Dispatch(kernalIndex, threadGroupsX, threadGroupsY, threadGroupsZ);
+            int threadGroupsX = Mathf.CeilToInt(Screen.width / Divider_x);
+            int threadGroupsY = Mathf.CeilToInt(Screen.height / Divider_y);
+            Shader.Dispatch(kernalIndex, threadGroupsX, threadGroupsY, Thread_groups_z);
         }
         
-        protected static void InitTexture(ref RenderTexture tex, int width, int height)
+        protected static void InitTexture(ref RenderTexture Tex, int Width, int Height)
         {
             // If RenderTexture already initialized break
-            if (tex != null && tex.width == width && tex.height == height) return;
+            if (Tex != null && Tex.width == Width && Tex.height == Height) return;
 
             // Release render Texture if already initialized
-            if (tex != null)
-                tex.Release();
+            if (Tex != null)
+                Tex.Release();
 
             // Get render target for raytracing
-            tex = new RenderTexture(width, height, 0,
+            Tex = new RenderTexture(Width, Height, 0,
                 RenderTextureFormat.ARGBFloat,
                 RenderTextureReadWrite.Linear);
-            tex.enableRandomWrite = true;
-            tex.Create();
+            Tex.enableRandomWrite = true;
+            Tex.Create();
         }
-        protected void InitRenderTexture(ref RenderTexture tex)
+        protected void InitRenderTexture(ref RenderTexture Tex)
         {
-            InitTexture(ref tex, Screen.width, Screen.height);
+            InitTexture(ref Tex, Screen.width, Screen.height);
         }
         protected virtual void Awake()
         {
