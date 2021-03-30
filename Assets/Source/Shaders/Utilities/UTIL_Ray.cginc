@@ -3,6 +3,10 @@
 #include "UTIL_Generics.cginc"
 #include "UTIL_Shapes.cginc"
 
+extern StructuredBuffer<Mesh> _Meshes;
+extern StructuredBuffer<float3> _Vertices;
+extern StructuredBuffer<int> _Indices;
+
 /// RAY
 struct Ray {
     float3 Origin;
@@ -73,5 +77,71 @@ void IntersectSphere(Ray r, inout Hit best, Sphere s) {
         best = Hit_Construct(r, t);
         best.Norm = normalize(best.Pos - s.Pos);
         best.Mat = s.Mat;
+    }
+}
+
+bool IntersectTriangle(Ray r, Triangle tri, inout float t, inout float u, inout float v) {
+    // create two edges;
+    float3 edge1 = tri.b - tri.a;
+    float3 edge2 = tri.c - tri.a;
+
+    // begin calc determinants
+    float3 pvec = cross(r.Dir, edge2);
+
+    // if determinant is near zoer, ray lies in plane of triangle
+    float det = dot(edge1, pvec);
+
+    // use backface culling
+    if (det < EPSILON)
+        return false;
+    float inv_det = 1.0f / det;
+
+    // calc distance from tri.a to r.Origin
+    float3 tvec = r.Origin - tri.a;
+
+    // calc the U parameter and test bounds
+    u = dot(tvec, pvec) * inv_det;
+    if (u < 0.0f || u > 1.0f)
+        return false;
+
+    // prepare to test v parameter
+    float3 qvec = cross(tvec, tri.b);
+
+    // calc v parameter and test bounds
+    v = dot(r.Dir, qvec) * inv_det;
+    if (v < 0.0f || u + v > 1.0f)
+        return false;
+
+    // calc t, ray intersects triangle
+    t = dot(edge2, qvec) * inv_det;
+
+    return true;
+}
+
+void IntersectMeshObject(Ray r, inout Hit best, Mesh mesh)
+{
+    uint offset = mesh.IOffset;
+    uint count = offset + mesh.ICount;
+    for (uint i = offset; i < count; i += 3)
+    {
+        Triangle tri;
+        tri.a = (mul(mesh.LocalToWorld, float4(_Vertices[_Indices[i]], 1))).xyz;
+        tri.b = (mul(mesh.LocalToWorld, float4(_Vertices[_Indices[i + 1]], 1))).xyz;
+        tri.c = (mul(mesh.LocalToWorld, float4(_Vertices[_Indices[i + 2]], 1))).xyz;
+            
+        float t, u, v;
+        if (IntersectTriangle(r, tri, t, u, v))
+        {
+            if (t > 0 && t < best.Dist)
+            {
+                // TODO: replace the position calc with barycentric coordinates instead of t & position
+                best = Hit_Construct(r, t);
+                best.Norm = normalize(cross(tri.b - tri.a, tri.c - tri.a));
+                best.Mat.Albedo = 0.0f;
+                best.Mat.Specular = 0.65f;
+                best.Mat.Roughness = 0.01f;
+                best.Mat.Emission = 0.0f;
+            }
+        }
     }
 }

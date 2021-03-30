@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -6,7 +5,6 @@ namespace Source
 {
     namespace Core
     {
-
         public abstract class ComputeShaderMaster : MonoBehaviour
         {
             // The target shader to be run per batch of 8x8 pixels
@@ -18,41 +16,49 @@ namespace Source
         // the reference camera we're outputting Result to
         protected Camera RefCam;
 
-        protected virtual void prerender() {}
-        
-        protected virtual void postrender() {}
-        
-        protected virtual void OnRenderImage(RenderTexture src, RenderTexture output)
-        {
-            SetShaderParameters();
-            prerender();
-            render(ref output, 8, 8);
-            postrender();
-        }
-    
-        private void render(ref RenderTexture output, int groupsX, int groupsY)
-        {
-            // Make sure we have a current render target
-            InitRenderTexture(ref Result);
+        protected abstract void OnRenderImage(RenderTexture Src, RenderTexture Output);
 
-            // Set the target and dispatch the compute shader
-            ComponentComputeShader.SetTexture(0, "Result", Result);
+        protected static void dispatchShader(ref ComputeShader Shader, float Divider_x, float Divider_y, int Thread_groups_z = 1,
+            int Kernal_index = 0)
+        {
+            var thread_groups_x = Mathf.CeilToInt(Screen.width / Divider_x);
+            var thread_groups_y = Mathf.CeilToInt(Screen.height / Divider_y);
+            Shader.Dispatch(Kernal_index, thread_groups_x, thread_groups_y, Thread_groups_z);
+        }
+        
+        protected static void createComputeBuffer<T>(ref ComputeBuffer Buff, List<T> Data, int Stride)
+            where T : struct
+        {
+            // Do we already have a compute buff?
+            if (Buff != null)
+            {
+                // If no data or buff doesn't match the given criteria, release it
+                if (Data.Count == 0 || Buff.count != Data.Count || Buff.stride != Stride)
+                {
+                    Buff.Release();
+                    Buff = null;
+                }
+            }
+
+            if (Data.Count == 0) return;
             
-            DispatchShader(ref ComponentComputeShader, groupsX, groupsY);
-
-            // Blit the resulting texture to the screen
-            Graphics.Blit(Result, output);
-        }
-
-        protected void DispatchShader(ref ComputeShader Shader, float Divider_x = 8.0f, float Divider_y = 8.0f, int Thread_groups_z = 1,
-            int kernalIndex = 0)
-        {
-            int threadGroupsX = Mathf.CeilToInt(Screen.width / Divider_x);
-            int threadGroupsY = Mathf.CeilToInt(Screen.height / Divider_y);
-            Shader.Dispatch(kernalIndex, threadGroupsX, threadGroupsY, Thread_groups_z);
+            // If the buff has been released or wasn't there to
+            // begin with, create it
+            Buff ??= new ComputeBuffer(Data.Count, Stride);
+            
+            // Set data on the buff
+            Buff.SetData(Data);
         }
         
-        protected static void InitTexture(ref RenderTexture Tex, int Width, int Height)
+        protected void setComputeBuffer(string Name, ComputeBuffer Buff)
+        {
+            if (Buff != null)
+            {
+                ComponentComputeShader.SetBuffer(0, Name, Buff);
+            }
+        }
+        
+        protected static void initTexture(ref RenderTexture Tex, int Width, int Height)
         {
             // If RenderTexture already initialized break
             if (Tex != null && Tex.width == Width && Tex.height == Height) return;
@@ -64,20 +70,18 @@ namespace Source
             // Get render target for raytracing
             Tex = new RenderTexture(Width, Height, 0,
                 RenderTextureFormat.ARGBFloat,
-                RenderTextureReadWrite.Linear);
-            Tex.enableRandomWrite = true;
+                RenderTextureReadWrite.Linear) {enableRandomWrite = true};
             Tex.Create();
         }
-        protected void InitRenderTexture(ref RenderTexture Tex)
+        protected static void initRenderTexture(ref RenderTexture Tex)
         {
-            InitTexture(ref Tex, Screen.width, Screen.height);
+            initTexture(ref Tex, Screen.width, Screen.height);
         }
         protected virtual void Awake()
         {
             RefCam = GetComponent<Camera>();
         }
-
-        protected abstract void SetShaderParameters();
+        protected abstract void setShaderParameters();
         
         }
     }

@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "UTIL_Generics.cginc"
 
 /// A material struct, contains all information for lighting
 struct Material {
@@ -33,4 +34,19 @@ struct Sphere {
     float3 Pos;
     float Rad;
     Material Mat;
+};
+
+/// Defining a Mesh in data
+struct Mesh {
+    float4x4 LocalToWorld;
+    uint IOffset;
+    uint ICount;
+    Material Mat;
+};
+
+/// A Triangle in data
+struct Triangle {
+    float3 a;
+    float3 b;
+    float3 c;
 };

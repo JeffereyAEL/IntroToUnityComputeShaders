@@ -12,7 +12,9 @@ static const float PI = 3.14159265f;
 static const float INF = 3.402823466e+38F;//1. / 0.;
 /// Negative Infinity
 static const float NINF = -INF;
- 
+/// EPSILON
+static const float EPSILON = 1e-8;
+
 // MACROS
 /// Constructs a hardcoded uniform float3
 #define FlOAT3(value) float3(value, value, value)

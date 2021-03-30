@@ -4,7 +4,7 @@
 /// INCLUDES
 #pragma once
 // Our neat and tidy include package
-#include "Assets/Source/Shaders/UtilityShaders/UTIL_Graphics.cginc"
+#include "Assets/Source/Shaders/Utilities/UTIL_Graphics.cginc"
 
 /// DEFINES
 #define LAMBERT_DIFFUSE 1
@@ -21,7 +21,6 @@ extern float2 _PixelOffset;
 extern uint _MaxBounce;
 extern float4 _DirectionalLight;
 extern StructuredBuffer<Sphere> _Spheres;
-extern uint _NumSpheres;
 extern uint _LightingMode;
 extern float3 _SkyColor;
 extern float _UsingSkybox;
@@ -46,11 +45,18 @@ void IntersectGroundPlane(Ray r, inout Hit best) {
 /// RAY TRACING GUTS
 Hit Trace(Ray r) {
     Hit best = Hit_Construct();
+    uint count, stride, i;
+    
     IntersectGroundPlane(r, best);
 
-    for (uint i = 0; i < _NumSpheres; ++i)
+    _Spheres.GetDimensions(count, stride);
+    for (i = 0; i < count; ++i)
         IntersectSphere(r, best, _Spheres[i]);
-    
+
+    _Meshes.GetDimensions(count, stride);
+    for (i = 0; i < count; ++i)
+        IntersectMeshObject(r, best, _Meshes[i]);
+
     return best;
 }
 
@@ -90,7 +96,7 @@ float3 Shade(inout Ray r, Hit h) {
 }
 
 /// MAIN ===============================================================================================================
-[numthreads(24,24,1)]
+[numthreads(16,16,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     // Set globals
