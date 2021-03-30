@@ -29,6 +29,8 @@ extern float _UsingSkybox;
 /// CONSTANTS
 static const float3 GROUND_ALBEDO = float3(1.0f, 1.0f, 1.0f);
 static const float3 GROUND_SPECULAR = float3(0.04f, 0.04f, 0.04f);
+static const float3 GROUND_EMISSION = float3(0.0f, 0.0f, 0.0f);
+static const float GROUND_ROUGHNESS = 0.85f;
 
 /// GENERICS 
 void IntersectGroundPlane(Ray r, inout Hit best) {
@@ -37,7 +39,7 @@ void IntersectGroundPlane(Ray r, inout Hit best) {
     if (t > 0 && t < best.Dist)
     {
         best = Hit_Construct(r, t);
-        best.Mat = Material_Construct(GROUND_ALBEDO, GROUND_SPECULAR);
+        best.Mat = Material_Construct(GROUND_ALBEDO, GROUND_SPECULAR, GROUND_EMISSION, GROUND_ROUGHNESS);
     }
 }
 
@@ -71,7 +73,7 @@ float3 Shade(inout Ray r, Hit h) {
         }
         
         // return nothing
-        return float3(0.0f, 0.0f, 0.0f);
+        return h.Mat.Emission;
     }
     
     // else, we hit nothing, return the skybox tex n zero energy, sky isn't reflective
@@ -88,7 +90,7 @@ float3 Shade(inout Ray r, Hit h) {
 }
 
 /// MAIN ===============================================================================================================
-[numthreads(32,32,1)]
+[numthreads(24,24,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     // Set globals

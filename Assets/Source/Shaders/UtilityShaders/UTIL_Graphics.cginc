@@ -32,6 +32,23 @@ float3 SampleHemisphere(float3 normal) {
     return mul(tangent_space_dir, GetTangentSpace(normal));
 }
 
+/// Randomly samples from the hemisphere of a given normal w/ a deterministic alpha
+float3 SampleHemisphere(float3 normal, float alpha) {
+    // sample the hemisphere where the alpha determines the kind of the sampling
+    float cos_theta = pow(Rand(), 1.0f / (alpha + 1.0f));
+    float sin_theta = sqrt(1.0f - cos_theta * cos_theta);
+    float phi = 2 * PI * Rand();
+    float3 tangent_space_dir = float3(cos(phi) * sin_theta, sin(phi) * sin_theta, cos_theta);
+
+    // transform the direction into world space
+    return mul(tangent_space_dir, GetTangentSpace(normal));
+}
+
+/// Converts Roughness into a Phong Alpha
+float RoughnessToPhongAlpha(float r) {
+    return pow(1000.0f, (1-r) * (1-r));
+}
+
 /// Simple Diffuse shading
 void LambertDiffuse(inout Ray r, Hit h) {
     r.Origin = h.Pos + h.Norm * 0.001f;
@@ -61,18 +78,22 @@ void ChanceDiffuseSpecular(inout Ray r, Hit h) {
 
     // roulette-select the ray's path
     float roulette = Rand();
-        
+
+    
     r.Origin = h.Pos + h.Norm * 0.001f;
     if (roulette < spec_chance)
     {
         // specular reflection
-        r.Dir = reflect(r.Dir, h.Norm);
-        r.ColorWeight *= (1.0f / spec_chance) * h.Mat.Specular * sdot(h.Norm, r.Dir);
+        _PhongAlpha = RoughnessToPhongAlpha(h.Mat.Roughness);
+        r.Dir = SampleHemisphere(reflect(r.Dir, h.Norm), _PhongAlpha);
+        float f = (_PhongAlpha + 2) / (_PhongAlpha + 1);
+        r.ColorWeight *= (1.0f / spec_chance) * h.Mat.Specular * sdot(h.Norm, r.Dir, f);
     }
     else
     {
         // diffuse reflection
-        r.Dir = SampleHemisphere(h.Norm);
-        r.ColorWeight *= (1.0f / diff_chance) * 2 * h.Mat.Albedo * sdot(h.Norm, r.Dir);
+        r.Dir = SampleHemisphere(h.Norm, 1.0f);
+        //r.ColorWeight *= (1.0f / diff_chance) * 2 * h.Mat.Albedo * sdot(h.Norm, r.Dir);
+        r.ColorWeight *= (1.0f / diff_chance) * h.Mat.Albedo;
     }
 }

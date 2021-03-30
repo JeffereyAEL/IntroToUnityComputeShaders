@@ -37,13 +37,13 @@ namespace Source
         public float PhongAlpha = 15.0f;
         
         /// Whether we're sampling from the skybox texture
-        public bool UsingSkybox;
+        public bool UsingSkybox = false;
 
         /// The color of the sky w/o a texture
-        public Color SkyColor;
+        public Color SkyColor = Color.black;
         
         /// The type of lighting being used
-        public LightingType LightingMode;
+        public LightingType LightingMode = LightingType.ChanceDiffSpec;
         
         // PRIVATE
         /// the generated array of spheres from Awake vec4( vec3 pos, float radius)
@@ -72,6 +72,8 @@ namespace Source
             // Should be moved into material struct
             public Vector3 Albedo;
             public Vector3 Specular;
+            public Vector3 Emission;
+            public float Roughness;
         }
         
         /// <summary>
@@ -80,8 +82,10 @@ namespace Source
         public enum LightingType
         {
             LambertDiffuse = 1,
-            PhongSpecular = 2,
-            ChanceDiffSpec = 3
+            PhongSpecular,
+            ChanceDiffSpec,
+            
+            LenOfTypes
         }
         
         /// <summary>
@@ -108,7 +112,8 @@ namespace Source
             bool metal = Random.value < 0.0f;
             s.Albedo = metal ? Vector3.zero : new Vector3(color.r, color.g, color.b);
             s.Specular = metal ? new Vector3(color.r, color.g, color.b) : Vector3.one * 0.04f;
-            
+            s.Emission = new Vector3(Random.value, Random.value, Random.value);
+            s.Roughness = Random.value;
             return false;
         }
         protected override void SetShaderParameters()
@@ -142,7 +147,7 @@ namespace Source
             // Set the target and dispatch the compute shader
             ComponentComputeShader.SetTexture(0, "Result", Result);
             
-            DispatchShader(ref ComponentComputeShader, 32.0f, 32.0f);
+            DispatchShader(ref ComponentComputeShader, 24.0f, 24.0f);
 
             // Blit the resulting texture to the screen
             if (AddMaterial == null)
@@ -186,7 +191,7 @@ namespace Source
             }
             
             // Compute the new Spheres buffer 
-            SphereBuffer = new ComputeBuffer(temp.Count, 40);
+            SphereBuffer = new ComputeBuffer(temp.Count, 56);
             SphereBuffer.SetData(temp);
             SphereBufferSize = temp.Count;
         }
