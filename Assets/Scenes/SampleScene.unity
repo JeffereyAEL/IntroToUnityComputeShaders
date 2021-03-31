@@ -227,13 +227,16 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 589031753}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 22e6bc3dab884b8495bffca1bc98f10f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  MatType: 1
-  bMaterialChanged: 1
+  MatType: 0
+  Albedo: {x: 1, y: 1, z: 1}
+  Specular: {x: 1, y: 1, z: 1}
+  Emissive: {x: 0, y: 0, z: 0}
+  Roughness: -2
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -340,7 +343,6 @@ GameObject:
   - component: {fileID: 963194226}
   - component: {fileID: 963194230}
   - component: {fileID: 963194229}
-  - component: {fileID: 963194231}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -420,15 +422,27 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2f4d1dd7852bc8d4581a86c71151b685, type: 3}
+  m_Script: {fileID: 11500000, guid: d50549a7645b448d893ac39c648121c5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ComponentComputeShader: {fileID: 7200000, guid: 9be44070659fcdf4e8e066eaf661a5db, type: 3}
-  CellSize: 1
-  AliveColor: {r: 1, g: 0, b: 0.9373021, a: 0}
-  DeadColor: {r: 0.13363299, g: 0.32906222, b: 0.7264151, a: 0}
+  ComponentComputeShader: {fileID: 7200000, guid: a795068e37b679344a17a087fff2c550, type: 3}
+  LightingMode: 3
+  DirectionalLight: {fileID: 705507994}
+  SkyboxSrc: {fileID: 2800000, guid: f7087e3d0beb6f3408464d5ac3c43686, type: 3}
+  bUsingSkybox: 0
+  SkyColor: {r: 1, g: 1, b: 1, a: 1}
+  bAdvancedLighting: 0
+  MaxBounce: 10
+  PhongAlpha: 15
+  bExposeSpheres: 1
+  SphereNumMax: 10000
+  SphereRad: {x: 5, y: 30}
+  SpherePlacementRad: 100
+  bSphereBobbing: 0
+  MaxRelitiveBob: 3
+  RandomSeed: 0
 --- !u!114 &963194230
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -443,30 +457,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   VSync: 1
   TargetFrameRate: -1
---- !u!114 &963194231
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 963194225}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d50549a7645b448d893ac39c648121c5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ComponentComputeShader: {fileID: 7200000, guid: a795068e37b679344a17a087fff2c550, type: 3}
-  SkyboxSrc: {fileID: 2800000, guid: f7087e3d0beb6f3408464d5ac3c43686, type: 3}
-  DirectionalLight: {fileID: 705507994}
-  SphereNumMax: 10000
-  SphereRad: {x: 5, y: 30}
-  SpherePlacementRad: 100
-  MaxBounce: 8
-  RandomSeed: 3
-  PhongAlpha: 15
-  UsingSkybox: 0
-  SkyColor: {r: 0, g: 0, b: 0, a: 1}
-  LightingMode: 3
 --- !u!1 &1145813924
 GameObject:
   m_ObjectHideFlags: 0
@@ -500,7 +490,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   MatType: 2
-  bMaterialChanged: 1
+  Albedo: {x: 1, y: 1, z: 1}
+  Specular: {x: 0, y: 0, z: 0}
+  Emissive: {x: 5, y: 5, z: 5}
+  Roughness: 0
 --- !u!135 &1145813926
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -686,4 +679,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   MatType: 0
-  bMaterialChanged: 1
+  Albedo: {x: 1, y: 1, z: 1}
+  Specular: {x: 0, y: 0, z: 0}
+  Emissive: {x: 0, y: 0, z: 0}
+  Roughness: 0

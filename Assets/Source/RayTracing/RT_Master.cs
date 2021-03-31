@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
@@ -10,39 +11,53 @@ namespace Source.RayTracing
 {
     public class RT_Master : ComputeShaderMaster
     {
-        /// Skybox ref texture
-        public Texture SkyboxSrc;
-    
-        /// The scene directional light
-        public Light DirectionalLight;
-        
-        // Random ShaderSphere params
-        /// the number of Spheres to try an generate on Awake
-        public int SphereNumMax = 10000;
-
-        /// vec2(min_bound, max_bound) for the radius of a sphere
-        public Vector2 SphereRad = new Vector2(0.3f, 1.5f);
-
-        /// The placement radius of a given sphere
-        public float SpherePlacementRad = 100.0f;
-        
-        /// The amount of times Rays bounce to generate reflections
-        public int MaxBounce = 10;
-
-        /// The seed for Unity's Random engine
-        public int RandomSeed;
-
-        /// Phong Shading Alpha
-        public float PhongAlpha = 15.0f;
-        
-        /// Whether we're sampling from the skybox texture
-        public bool UsingSkybox;
-
-        /// The color of the sky w/o a texture
-        public Color SkyColor = Color.black;
-        
         /// The type of lighting being used
         public LightingType LightingMode = LightingType.ChanceDiffSpec;
+
+        /// The scene directional light
+        public Light DirectionalLight;
+
+        /// Skybox ref texture
+        public Texture SkyboxSrc;
+
+        /// Whether we're sampling from the skybox texture
+        [HideInInspector]  public bool bUsingSkybox;
+
+        /// The color of the sky w/o a texture
+        [HideInInspector]  public Color SkyColor = Color.black;
+
+        /// Whether to expose advanced lighting editor details
+        [HideInInspector]  public bool bAdvancedLighting = false;
+        
+        /// The amount of times Rays bounce to generate reflections
+        [HideInInspector]  public int MaxBounce = 10;
+
+        /// Phong Shading Alpha
+        [HideInInspector]  public float PhongAlpha = 15.0f;
+        
+        /// the number of Spheres to try an generate on Awake
+        [HideInInspector]  public bool bExposeSpheres;
+        
+        /// the number of Spheres to try an generate on Awake
+        [HideInInspector]  public int SphereNumMax = 10000;
+        
+        /// vec2(min_bound, max_bound) for the radius of a sphere
+        [HideInInspector] public Vector2 SphereRad = new Vector2(0.3f, 1.5f);
+        
+        /// The placement radius of a given sphere
+        [HideInInspector] public float SpherePlacementRad = 100.0f;
+
+        /// Is Sphere bobbing enabled
+        [HideInInspector] public bool bSphereBobbing;
+        
+        /// Percent of the radius that a sphere will bob
+        [HideInInspector] public float MaxRelitiveBob = 3.0f;
+        
+        /// The seed for Unity's Random engine
+        [HideInInspector] public int RandomSeed;
+
+        /// Whether the editor has changed and the scene needs to be re-rendered
+        [NonSerializedAttribute] public bool bEditorChanges = true;
         
         // PRIVATE
         /// <summary>
@@ -77,11 +92,13 @@ namespace Source.RayTracing
 
         private static readonly int _Sample = Shader.PropertyToID("_Sample");
 
-
+        /// x = Spheres idx, y = time offset, z = original y, w = radius rel max y offset  
+        private List<Vector4> BobbingSpheres = new List<Vector4>(); 
+        
         /// <summary>
         /// The types of lighting the ray tracer can compute
         /// </summary>
-        public enum LightingType
+        public enum LightingType 
         {
             [UsedImplicitly] LambertDiffuse = 1,
             [UsedImplicitly] PhongSpecular,
@@ -174,6 +191,7 @@ namespace Source.RayTracing
             var color = Random.ColorHSV();
             var me = Random.value < 0.5f;
             var em = Random.value < 0.25f;
+            
             New_sphere.Mat.Albedo = me ? Vector3.zero : new Vector3(color.r, color.g, color.b);
             New_sphere.Mat.Specular = me ? new Vector3(color.r, color.g, color.b) : Vector3.one * 0.04f;
             New_sphere.Mat.Emissive = em ? new Vector3(Random.value, Random.value, Random.value) : Vector3.zero;
@@ -194,7 +212,7 @@ namespace Source.RayTracing
             ComponentComputeShader.SetFloat("_PhongAlpha", PhongAlpha);
             ComponentComputeShader.SetTexture(0, "_SkyboxTexture", SkyboxSrc);
             ComponentComputeShader.SetInt("_LightingMode", (int)LightingMode);
-            ComponentComputeShader.SetFloat("_UsingSkybox", UsingSkybox ? 1.0f : 0.0f);
+            ComponentComputeShader.SetFloat("_UsingSkybox", bUsingSkybox ? 1.0f : 0.0f);
             ComponentComputeShader.SetVector("_SkyColor", SkyColor); 
             setComputeBuffer("_Meshes", MeshBuffer);
             setComputeBuffer("_Vertices", VertexBuffer);
@@ -246,9 +264,27 @@ namespace Source.RayTracing
 
         private void Update()
         {
-            if (!transform.hasChanged) return;
-            CurrentSample = 0;
-            transform.hasChanged = false;
+            if (transform.hasChanged || bEditorChanges)
+            {
+                CurrentSample = 0;
+                transform.hasChanged = false;
+                if (bEditorChanges)
+                {
+                    setupScene();
+                }
+                bEditorChanges = false;
+            }
+
+            if (!bSphereBobbing) return;
+
+            foreach (var data in BobbingSpheres)
+            {
+                var s = Spheres[(int)data.x];
+                float per_bob = (Mathf.Sin(UnityEngine.Time.time + data.y) + 1) / 2;
+                float y_offset = per_bob * data.w * s.Rad;
+                s.Pos.y = data.z + y_offset;
+            }
+
         }
 
         /// <summary>
@@ -258,13 +294,21 @@ namespace Source.RayTracing
         {
             if (RandomSeed != 0) Random.InitState(RandomSeed);
             
+            BobbingSpheres.Clear();
             Spheres = new List<ShaderSphere>();
             for (var i = 0; i < SphereNumMax; ++i)
             {
                 var new_sphere = new ShaderSphere();
                 if (!sphereConstructor(ref new_sphere))
+                {
                     Spheres.Add(new_sphere);
+                    if (new_sphere.Mat.Emissive != Vector3.zero) // if it's emissive
+                    {
+                        BobbingSpheres.Add(new Vector4(Spheres.Count-1, Random.value, new_sphere.Rad, Random.value * new_sphere.Rad * MaxRelitiveBob));
+                    }
+                }
             }
+            
             createComputeBuffer(ref SphereBuffer, Spheres, 56);
         }
         

@@ -27,10 +27,15 @@ namespace Source.RayTracing
         /// This RT_Object's material preset
         /// </summary>
         public MaterialType MatType = MaterialType.Light;
+
+        [HideInInspector] public Vector3 Albedo;
+        [HideInInspector] public Vector3 Specular;
+        [HideInInspector] public Vector3 Emissive;
+        [HideInInspector] public float Roughness;
         
         /// <summary>
         /// Whether this material has been changed since last rendering began
-        /// </summary>
+        /// </summary>s
         [NonSerialized] public bool bMaterialChanged = true;
         
         /// <summary>
@@ -73,6 +78,15 @@ namespace Source.RayTracing
         {
             if (!transform.hasChanged && !bMaterialChanged) return;
             RT_Master.unregisterObject(this);
+
+            Mat = new ShaderMaterial
+            {
+                Albedo = Albedo,
+                Emissive = Emissive,
+                Roughness = Roughness,
+                Specular = Specular
+            };
+
             RT_Master.registerObject(this);
             transform.hasChanged = false;
             bMaterialChanged = false;
