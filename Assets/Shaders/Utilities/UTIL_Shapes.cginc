@@ -1,11 +1,10 @@
 ﻿#pragma once
-#include "UTIL_Generics.cginc"
 
 /// A material struct, contains all information for lighting
 struct Material {
     float3 Albedo;
     float3 Specular;
-    float3 Emission;
+    float3 Emissive;
     float Roughness;
 };
 
@@ -14,7 +13,7 @@ Material Material_Construct() {
     Material mat;
     mat.Albedo = float3(0.0f, 0.0f, 0.0f);
     mat.Specular = float3(0.0f, 0.0f, 0.0f);
-    mat.Emission = float3(0.0f, 0.0f, 0.0f);
+    mat.Emissive = float3(0.0f, 0.0f, 0.0f);
     mat.Roughness = 0.0f;
     return mat;
 }
@@ -24,8 +23,18 @@ Material Material_Construct(float3 a, float3 s, float3 e, float r) {
     Material mat;
     mat.Albedo = a;
     mat.Specular = s;
-    mat.Emission = e;
+    mat.Emissive = e;
     mat.Roughness = r;
+    return mat;
+}
+
+/// Setter constructor for the Material struct
+Material Material_Construct(Material m) {
+    Material mat;
+    mat.Albedo = m.Albedo;
+    mat.Specular = m.Specular;
+    mat.Emissive = m.Emissive;
+    mat.Roughness = m.Roughness;
     return mat;
 }
 
@@ -42,11 +51,4 @@ struct Mesh {
     uint IOffset;
     uint ICount;
     Material Mat;
-};
-
-/// A Triangle in data
-struct Triangle {
-    float3 a;
-    float3 b;
-    float3 c;
 };

@@ -2,9 +2,8 @@
 #pragma kernel CSMain
 
 /// INCLUDES
-#pragma once
 // Our neat and tidy include package
-#include "Assets/Source/Shaders/Utilities/UTIL_Graphics.cginc"
+#include "Assets/Shaders/Utilities/UTIL_Graphics.cginc"
 
 /// DEFINES
 #define LAMBERT_DIFFUSE 1
@@ -14,16 +13,21 @@
 /// EXTERNS
 extern RWTexture2D<float4> Result;
 
-extern Texture2D<float4> _SkyboxTexture;
-extern SamplerState sampler_SkyboxTexture;
-
-extern float2 _PixelOffset;
+extern uint _LightingMode;
 extern uint _MaxBounce;
 extern float4 _DirectionalLight;
-extern StructuredBuffer<Sphere> _Spheres;
-extern uint _LightingMode;
+
+extern Texture2D<float4> _SkyboxTexture;
+extern SamplerState sampler_SkyboxTexture;
 extern float3 _SkyColor;
 extern float _UsingSkybox;
+
+extern StructuredBuffer<Sphere> _Spheres;
+extern StructuredBuffer<Mesh> _Meshes;
+extern StructuredBuffer<float3> _Vertices;
+extern StructuredBuffer<int> _Indices;
+
+extern float2 _PixelOffset;
 
 /// CONSTANTS
 static const float3 GROUND_ALBEDO = float3(1.0f, 1.0f, 1.0f);
@@ -31,7 +35,7 @@ static const float3 GROUND_SPECULAR = float3(0.04f, 0.04f, 0.04f);
 static const float3 GROUND_EMISSION = float3(0.0f, 0.0f, 0.0f);
 static const float GROUND_ROUGHNESS = 0.85f;
 
-/// GENERICS 
+/// INTERSECTIONS 
 void IntersectGroundPlane(Ray r, inout Hit best) {
     // calc the distance along the ray where the ground plane is intersected
     float t = -r.Origin.y / r.Dir.y;
@@ -39,6 +43,86 @@ void IntersectGroundPlane(Ray r, inout Hit best) {
     {
         best = Hit_Construct(r, t);
         best.Mat = Material_Construct(GROUND_ALBEDO, GROUND_SPECULAR, GROUND_EMISSION, GROUND_ROUGHNESS);
+    }
+}
+
+void IntersectSphere(Ray r, inout Hit best, Sphere s) {
+    // calc the distance along the ray where the sphere is intersected
+    float3 d = r.Origin - s.Pos;
+    float p1 = -dot(r.Dir, d);
+    float p2sqr = p1 * p1 - dot(d,d) + s.Rad * s.Rad;
+    if (p2sqr < 0)
+        return;
+    float p2 = sqrt(p2sqr);
+    float t = p1 - p2 > 0 ? p1 - p2 : p1 + p2;
+    if (t > 0 && t < best.Dist)
+    {
+        best = Hit_Construct(r, t);
+        best.Norm = normalize(best.Pos - s.Pos);
+        best.Mat = s.Mat;
+    }
+}
+
+bool IntersectTriangle(Ray r, float3 a, float3 b, float3 c, inout float t, inout float u, inout float v) {
+    // create two edges;
+    float3 edge1 = b - a;
+    float3 edge2 = c - a;
+
+    // begin calc determinants
+    float3 pvec = cross(r.Dir, edge2);
+
+    // if determinant is near zero, ray lies in plane of triangle
+    float det = dot(edge1, pvec);
+
+    // use backface culling
+    if (det < EPSILON)
+        return false;
+    float inv_det = 1.0f / det;
+
+    // calc distance from a to r.Origin
+    float3 tvec = r.Origin - a;
+
+    // calc the U parameter and test bounds
+    u = dot(tvec, pvec) * inv_det;
+    if (u < 0.0 || u > 1.0f)
+        return false;
+
+    // prepare to test v parameter
+    float3 qvec = cross(tvec, edge1);
+
+    // calc v parameter and test bounds
+    v = dot(r.Dir, qvec) * inv_det;
+    if (v < 0.0f || u + v > 1.0f)
+        return false;
+
+    // calc t, ray intersects triangle
+    t = dot(edge2, qvec) * inv_det;
+
+    return true;
+}
+
+void IntersectMeshObject(Ray r, inout Hit best, Mesh mesh)
+{
+    uint offset = mesh.IOffset;
+    uint count = offset + mesh.ICount;
+    for (uint i = offset; i < count; i += 3)
+    {
+        
+        float3 a = (mul(mesh.LocalToWorld, float4(_Vertices[_Indices[i]], 1))).xyz;
+        float3 b = (mul(mesh.LocalToWorld, float4(_Vertices[_Indices[i + 1]], 1))).xyz;
+        float3 c = (mul(mesh.LocalToWorld, float4(_Vertices[_Indices[i + 2]], 1))).xyz;
+            
+        float t, u, v;
+        if (IntersectTriangle(r, a, b, c, t, u, v))
+        {
+            if (t > 0 && t < best.Dist)
+            {
+                // TODO: replace the position calc with barycentric coordinates instead of t & position
+                best = Hit_Construct(r, t);
+                best.Norm = normalize(cross(b - a, c - a));
+                best.Mat = Material_Construct(mesh.Mat);
+            }
+        }
     }
 }
 
@@ -74,17 +158,13 @@ float3 Shade(inout Ray r, Hit h) {
             case CHANCE_DIFF_SPEC:
                 ChanceDiffuseSpecular(r, h);
                 break;
-            default: // There is no default
-                break;
+            default:
+                break; // there are no defaults
         }
-        
-        // return nothing
-        return h.Mat.Emission;
+        return h.Mat.Emissive;
     }
-    
     // else, we hit nothing, return the skybox tex n zero energy, sky isn't reflective
     r.ColorWeight = 0.0f;
-
 
     // sample from the skybox
     float theta = acos(r.Dir.y) / -PI;
@@ -92,7 +172,7 @@ float3 Shade(inout Ray r, Hit h) {
     float3 tex = _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float2(phi, theta), 0.0f).xyz;
 
     // blend sky color and skybox texture sample
-    return (_UsingSkybox * tex + (1.0f - _UsingSkybox) * _SkyColor) * 1.1f;
+    return (_UsingSkybox * tex + (1.0f - _UsingSkybox) * _SkyColor.rgb) * 1.1f;
 }
 
 /// MAIN ===============================================================================================================

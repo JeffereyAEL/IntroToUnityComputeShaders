@@ -1,7 +1,7 @@
 using UnityEngine;
 using Source.Core;
 
-namespace Source
+namespace Source.Core
 {
     public class TheGameOfLife : ComputeShaderMaster
     {
@@ -78,7 +78,7 @@ namespace Source
 
             temp.SetPixels(pixels);
             
-            initTexture(ref StateCurr, temp.width, temp.height);
+            initRenderTexture(ref StateCurr, temp.width, temp.height);
             RenderTexture.active = StateCurr;
             
             Graphics.Blit(temp, StateCurr);
