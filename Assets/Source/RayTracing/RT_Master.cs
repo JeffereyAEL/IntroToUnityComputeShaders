@@ -53,11 +53,20 @@ namespace Source.RayTracing
         /// Percent of the radius that a sphere will bob
         [HideInInspector] public float MaxRelitiveBob = 3.0f;
         
+        /// <summary>
         /// The seed for Unity's Random engine
+        /// </summary>
         [HideInInspector] public int RandomSeed;
 
+        /// <summary>
         /// Whether the editor has changed and the scene needs to be re-rendered
-        [NonSerializedAttribute] public bool bEditorChanges = true;
+        /// </summary>
+        [NonSerialized] public bool bSpheresChanged = true;
+
+        /// <summary>
+        /// Whether the Lighting has changed and the sampling needs to be restarted
+        /// </summary>
+        [NonSerialized] public bool bLightingChanged = true;
         
         // PRIVATE
         /// <summary>
@@ -264,15 +273,17 @@ namespace Source.RayTracing
 
         private void Update()
         {
-            if (transform.hasChanged || bEditorChanges)
+            if (transform.hasChanged || bSpheresChanged || bLightingChanged)
             {
                 CurrentSample = 0;
+                bLightingChanged = false;
                 transform.hasChanged = false;
-                if (bEditorChanges)
+                
+                if (bSpheresChanged)
                 {
                     setupScene();
                 }
-                bEditorChanges = false;
+                bSpheresChanged = false;
             }
 
             if (!bSphereBobbing) return;
@@ -284,7 +295,6 @@ namespace Source.RayTracing
                 float y_offset = per_bob * data.w * s.Rad;
                 s.Pos.y = data.z + y_offset;
             }
-
         }
 
         /// <summary>

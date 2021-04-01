@@ -46,14 +46,19 @@ namespace Source.RayTracing
         /// <summary>
         /// Whether this RT_Object's material has been initialized (prevents dirty rendering)
         /// </summary>
-        [NonSerialized] private bool bUninitialized = true;
+        private bool bUninitialized = true;
 
+        /// <summary>
+        /// The Axis Aligned Bounding Box of this RT_Object's mesh
+        /// </summary>
+        private Bounds AABounding;
+        
         private void Awake()
         {
             bUninitialized = true;
             
         }
-
+        
         private void Start()
         {
             if (!bUninitialized) return;
@@ -66,6 +71,7 @@ namespace Source.RayTracing
 
         private void OnEnable()
         {
+            initData();
             RT_Master.registerObject(this);
         }
 
@@ -79,6 +85,15 @@ namespace Source.RayTracing
             if (!transform.hasChanged && !bMaterialChanged) return;
             RT_Master.unregisterObject(this);
 
+            initData();
+
+            RT_Master.registerObject(this);
+            transform.hasChanged = false;
+        }
+
+        private void initData()
+        {
+            AABounding = GetComponent<MeshFilter>().sharedMesh.bounds;
             Mat = new ShaderMaterial
             {
                 Albedo = Albedo,
@@ -86,12 +101,9 @@ namespace Source.RayTracing
                 Roughness = Roughness,
                 Specular = Specular
             };
-
-            RT_Master.registerObject(this);
-            transform.hasChanged = false;
             bMaterialChanged = false;
         }
-
+        
         /// <summary>
         /// returns this RT_Object's ShaderMaterial
         /// </summary>

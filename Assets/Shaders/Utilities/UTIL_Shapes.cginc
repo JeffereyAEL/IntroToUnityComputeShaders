@@ -52,3 +52,9 @@ struct Mesh {
     uint ICount;
     Material Mat;
 };
+
+/// Defining an Axis Aligned Box in data
+struct AABox {
+    float3 Min;
+    float3 Max;
+};

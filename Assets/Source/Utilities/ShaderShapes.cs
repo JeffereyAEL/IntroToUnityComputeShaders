@@ -34,4 +34,13 @@ namespace Source.Utilities
         [UsedImplicitly] public int IndicesCount;
         [UsedImplicitly] public ShaderMaterial Mat;
     };
+    
+    /// <summary>
+    /// A mirrored Axis Aligned Box structure as defined in Source/Shaders/UtilityShaders/UTIL_Shapes.cginc
+    /// </summary>
+    public struct ShaderAABox
+    {
+        [UsedImplicitly] public Vector3 Min;
+        [UsedImplicitly] public Vector3 Max;
+    }
 }
