@@ -134,19 +134,23 @@ namespace Source.RayTracing
                 Indices.AddRange(indices.Select(Index => Index + vertex_offset));
                 
                 // add the object itself
+                var local_to_world = obj.transform.localToWorldMatrix;
                 Meshes.Add(new ShaderMesh()
                 {
-                    LocalToWorld = obj.transform.localToWorldMatrix,
+                    LocalToWorld = local_to_world,
                     IndicesOffset = index_offset,
                     IndicesCount = indices.Length,
                     Mat =  obj.getMaterial()
                 });
 
+                /// TODO: generate your own axis aligned bounding boxes
+                /// https://www.youtube.com/watch?v=TrqK-atFfWY @ 27:30
                 ShaderAABox box;
                 var temp = obj.getBounds();
-                box.Max = temp.max;
-                box.Min = temp.min;
+                box.Max = local_to_world.MultiplyPoint(temp.max);
+                box.Min = local_to_world.MultiplyPoint(temp.min);
                 box.Ref = Meshes.Count - 1;
+                print($"Bounds : Min={box.Min}, Max={box.Max}, idx={box.Ref}");
                 Bounds.Add(box);
             }
 
