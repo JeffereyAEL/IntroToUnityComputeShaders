@@ -42,5 +42,6 @@ namespace Source.Utilities
     {
         [UsedImplicitly] public Vector3 Min;
         [UsedImplicitly] public Vector3 Max;
+        [UsedImplicitly] public int Ref;
     }
 }

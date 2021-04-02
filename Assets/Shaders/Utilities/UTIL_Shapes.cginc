@@ -57,4 +57,5 @@ struct Mesh {
 struct AABox {
     float3 Min;
     float3 Max;
+    uint Ref;
 };

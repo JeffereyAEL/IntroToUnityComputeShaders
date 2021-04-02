@@ -11,32 +11,29 @@ namespace Source.RayTracing
 {
     public class RT_Master : ComputeShaderMaster
     {
-        /// The type of lighting being used
-        public LightingType LightingMode = LightingType.ChanceDiffSpec;
-
-        /// The scene directional light
-        public Light DirectionalLight;
-
         /// Skybox ref texture
         public Texture SkyboxSrc;
 
+        /// The scene directional light
+        public Light DirectionalLight;
+        
         /// Whether we're sampling from the skybox texture
-        [HideInInspector]  public bool bUsingSkybox;
+        [HideInInspector]  public bool IsUsingSkybox;
 
         /// The color of the sky w/o a texture
         [HideInInspector]  public Color SkyColor = Color.black;
 
-        /// Whether to expose advanced lighting editor details
-        [HideInInspector]  public bool bAdvancedLighting = false;
-        
         /// The amount of times Rays bounce to generate reflections
         [HideInInspector]  public int MaxBounce = 10;
 
         /// Phong Shading Alpha
         [HideInInspector]  public float PhongAlpha = 15.0f;
         
+        /// The type of lighting being used
+        public LightingType LightingMode = LightingType.ChanceDiffSpec;
+        
         /// the number of Spheres to try an generate on Awake
-        [HideInInspector]  public bool bExposeSpheres;
+        [HideInInspector][SerializeField]  public MeshCollisionType MeshCollisionMode;
         
         /// the number of Spheres to try an generate on Awake
         [HideInInspector]  public int SphereNumMax = 10000;
@@ -46,9 +43,9 @@ namespace Source.RayTracing
         
         /// The placement radius of a given sphere
         [HideInInspector] public float SpherePlacementRad = 100.0f;
-
+        
         /// Is Sphere bobbing enabled
-        [HideInInspector] public bool bSphereBobbing;
+        [HideInInspector] public bool IsSphereBobbing;
         
         /// Percent of the radius that a sphere will bob
         [HideInInspector] public float MaxRelitiveBob = 3.0f;
@@ -69,6 +66,8 @@ namespace Source.RayTracing
         [NonSerialized] public bool bLightingChanged = true;
         
         // PRIVATE
+        
+        // ReSharper disable FieldCanBeMadeReadOnly.Local
         /// <summary>
         ///  references to all RayTracingObjects in the scene
         /// </summary>
@@ -83,12 +82,18 @@ namespace Source.RayTracing
         private static List<ShaderMesh> Meshes = new List<ShaderMesh>();
         private static List<Vector3> Vertices = new List<Vector3>();
         private static List<int> Indices = new List<int>();
+        private static List<ShaderAABox> Bounds = new List<ShaderAABox>();
         
+        /// x = Spheres idx, y = time offset, z = original y, w = radius rel max y offset  
+        private List<Vector4> BobbingSpheres = new List<Vector4>(); 
+        
+        // ReSharper restore FieldCanBeMadeReadOnly.Local
         /// Compute Buffers for shape data
         private ComputeBuffer SphereBuffer;
         private ComputeBuffer MeshBuffer;
         private ComputeBuffer VertexBuffer;
         private ComputeBuffer IndexBuffer;
+        private ComputeBuffer BoundsBuffer;
         
         /// The current sample; used to track anti-aliasing
         private uint CurrentSample;
@@ -101,21 +106,6 @@ namespace Source.RayTracing
 
         private static readonly int _Sample = Shader.PropertyToID("_Sample");
 
-        /// x = Spheres idx, y = time offset, z = original y, w = radius rel max y offset  
-        private List<Vector4> BobbingSpheres = new List<Vector4>(); 
-        
-        /// <summary>
-        /// The types of lighting the ray tracer can compute
-        /// </summary>
-        public enum LightingType 
-        {
-            [UsedImplicitly] LambertDiffuse = 1,
-            [UsedImplicitly] PhongSpecular,
-            [UsedImplicitly] ChanceDiffSpec,
-
-            [UsedImplicitly] LenOfTypes
-        };
-        
         /// <summary>
         /// (re)instantiates buffers related to RT_Object rendering
         /// </summary>
@@ -129,7 +119,7 @@ namespace Source.RayTracing
             Meshes.Clear();
             Vertices.Clear();
             Indices.Clear();
-            
+            Bounds.Clear();
             foreach(var obj in RayTracingObjects)
             {
                 var mesh = obj.GetComponent<MeshFilter>().sharedMesh;
@@ -151,11 +141,19 @@ namespace Source.RayTracing
                     IndicesCount = indices.Length,
                     Mat =  obj.getMaterial()
                 });
+
+                ShaderAABox box;
+                var temp = obj.getBounds();
+                box.Max = temp.max;
+                box.Min = temp.min;
+                box.Ref = Meshes.Count - 1;
+                Bounds.Add(box);
             }
 
             createComputeBuffer(ref MeshBuffer, Meshes, 112);
             createComputeBuffer(ref VertexBuffer, Vertices, 12);
             createComputeBuffer(ref IndexBuffer, Indices, 4);
+            createComputeBuffer(ref BoundsBuffer, Bounds, 28);
         }
         
         /// <summary>
@@ -221,12 +219,14 @@ namespace Source.RayTracing
             ComponentComputeShader.SetFloat("_PhongAlpha", PhongAlpha);
             ComponentComputeShader.SetTexture(0, "_SkyboxTexture", SkyboxSrc);
             ComponentComputeShader.SetInt("_LightingMode", (int)LightingMode);
-            ComponentComputeShader.SetFloat("_UsingSkybox", bUsingSkybox ? 1.0f : 0.0f);
+            ComponentComputeShader.SetFloat("_UsingSkybox", IsUsingSkybox ? 1.0f : 0.0f);
             ComponentComputeShader.SetVector("_SkyColor", SkyColor); 
+            ComponentComputeShader.SetInt("_MeshCollisionMode", (int)MeshCollisionMode);
             setComputeBuffer("_Meshes", MeshBuffer);
             setComputeBuffer("_Vertices", VertexBuffer);
             setComputeBuffer("_Indices", IndexBuffer);
             setComputeBuffer("_Spheres", SphereBuffer);
+            setComputeBuffer("_Bounds", BoundsBuffer);
         }
 
         protected override void OnRenderImage(RenderTexture Src, RenderTexture Output)
@@ -286,12 +286,12 @@ namespace Source.RayTracing
                 bSpheresChanged = false;
             }
 
-            if (!bSphereBobbing) return;
+            if (!IsSphereBobbing) return;
 
             foreach (var data in BobbingSpheres)
             {
                 var s = Spheres[(int)data.x];
-                float per_bob = (Mathf.Sin(UnityEngine.Time.time + data.y) + 1) / 2;
+                float per_bob = (Mathf.Sin(Time.time + data.y) + 1) / 2;
                 float y_offset = per_bob * data.w * s.Rad;
                 s.Pos.y = data.z + y_offset;
             }
@@ -323,4 +323,23 @@ namespace Source.RayTracing
         }
         
     }
+    
+    /// <summary>
+    /// The types of lighting the ray tracer can compute
+    /// </summary>
+    public enum LightingType 
+    {
+        [UsedImplicitly] LambertDiffuse = 1,
+        [UsedImplicitly] PhongSpecular = 2,
+        [UsedImplicitly] ChanceDiffSpec = 3
+    };
+
+    /// <summary>
+    /// The types of mesh collision optimizations the ray tracer can utilize
+    /// </summary>
+    public enum MeshCollisionType
+    {
+        [UsedImplicitly] RawMeshCollision = 0,
+        [UsedImplicitly] BoundsCollision = 1
+    };
 }

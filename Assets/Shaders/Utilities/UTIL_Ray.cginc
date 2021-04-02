@@ -57,3 +57,22 @@ inline Hit Hit_Construct(Ray r, float d) {
     h.Mat = Material_Construct();
     return h;
 }
+
+inline bool Collision(Ray r, AABox b) {
+    float3 inv_ray_d = 1/r.Dir;
+    float3 t1 = (b.Min - r.Origin) * inv_ray_d;
+    float3 t2 = (b.Max - r.Origin) * inv_ray_d;
+    float start = 0, end = INF;
+    
+    for (uint i = 0; i < 3; ++i)
+    {
+        if (r.Dir[i] == 0 &&
+            (r.Origin[i] < t1[i] || r.Origin[i] > t2[i]))
+                continue;
+        if (t1[i] > start)
+            start = t1[i];
+        if (t2[i] < end)
+            end = t2[i];
+    }
+    return start < end && start > EPSILON && end > EPSILON;
+}

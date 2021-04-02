@@ -10,10 +10,15 @@
 #define PHONG_SPECULAR 2
 #define CHANCE_DIFF_SPEC 3
 
+#define RAW_MESH_COLLISION 0
+#define BOUNDS_COLLISION 1
+
 /// EXTERNS
 extern RWTexture2D<float4> Result;
 
 extern uint _LightingMode;
+extern uint _MeshCollisionMode;
+
 extern uint _MaxBounce;
 extern float4 _DirectionalLight;
 
@@ -26,7 +31,7 @@ extern StructuredBuffer<Sphere> _Spheres;
 extern StructuredBuffer<Mesh> _Meshes;
 extern StructuredBuffer<float3> _Vertices;
 extern StructuredBuffer<int> _Indices;
-
+extern StructuredBuffer<AABox> _Bounds;
 extern float2 _PixelOffset;
 
 /// CONSTANTS
@@ -137,9 +142,23 @@ Hit Trace(Ray r) {
     for (i = 0; i < count; ++i)
         IntersectSphere(r, best, _Spheres[i]);
 
-    _Meshes.GetDimensions(count, stride);
-    for (i = 0; i < count; ++i)
-        IntersectMeshObject(r, best, _Meshes[i]);
+    switch (_MeshCollisionMode)
+    {
+        case RAW_MESH_COLLISION:
+            _Meshes.GetDimensions(count, stride);
+            for (i = 0; i < count; ++i)
+                IntersectMeshObject(r, best, _Meshes[i]);
+            break;
+        case BOUNDS_COLLISION:
+            _Bounds.GetDimensions(count, stride);
+            for (i = 0; i < count; ++i)
+                if (Collision(r, _Bounds[i]))
+                    IntersectMeshObject(r, best, _Meshes[_Bounds[i].Ref]);
+            break;
+        default:
+            break;
+    }
+    
 
     return best;
 }

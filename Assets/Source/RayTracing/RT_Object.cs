@@ -112,5 +112,10 @@ namespace Source.RayTracing
         {
             return Mat;
         }
+
+        public Bounds getBounds()
+        {
+            return AABounding;
+        }
     }
 }
