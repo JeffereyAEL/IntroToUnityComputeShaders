@@ -14,18 +14,13 @@ namespace Source.RayTracing
     public class RT_Object : MonoBehaviour
     {
         // ENUMS
-        /// <summary>
-        /// Defines the Unity Editor preset that will be exposed for this RT_Object's material
-        /// </summary>
-        public enum MaterialType
-        {
-            Metallic,
-            Matte,
-            Light
-        }
-
         // STRUCTSs
         // ATTRIBUTES
+        [HideInInspector] public Vector3 Albedo;
+        [HideInInspector] public Vector3 Specular;
+        [HideInInspector] public Vector3 Emissive;
+        [HideInInspector] public float Roughness;
+        
         /// <summary>
         /// Mesh vertex * localToWorld data
         /// </summary>
@@ -40,21 +35,18 @@ namespace Source.RayTracing
         /// The Axis Aligned Bounding Box of this RT_Object's mesh
         /// </summary>
         private ShaderAABox AABounding;
-        
-        /// <summary>
-        /// This RT_Object's material preset
-        /// </summary>
-        public MaterialType MatType = MaterialType.Light;
 
         /// <summary>
         /// Whether this material has been changed since last rendering began
         /// </summary>s
         [NonSerialized] public bool bMaterialChanged = true;
-        
+
         /// <summary>
         /// This RT_object's rendering material
         /// </summary>
-        [NonSerialized] public ShaderMaterial Mat;
+        private ShaderMaterial Mat;
+
+        private MeshFilter MeshFilter;
 
         // GETTERS_/_SETTERS
         /// <summary>
@@ -96,15 +88,15 @@ namespace Source.RayTracing
         /// </summary>
         private void reconstructMeshData()
         {
-            var m = GetComponent<MeshFilter>().sharedMesh;
+            var m = MeshFilter.sharedMesh;
             Indices = m.GetIndices(0);
             Vertices = m.vertices;
-            var l2w = transform.localToWorldMatrix;
+            var local_to_world = transform.localToWorldMatrix;
             Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue), 
                 max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
             for (var i = 0; i < Vertices.Length; ++i)
             {
-                Vertices[i] = l2w.MultiplyPoint(Vertices[i]);
+                Vertices[i] = local_to_world.MultiplyPoint(Vertices[i]);
                 for (var o = 0; o < 3; ++o)
                 {
                     if (Vertices[i][o] < min[o])
@@ -117,16 +109,39 @@ namespace Source.RayTracing
             
             transform.hasChanged = false;
         }
+
+        private void reconstructMaterialData()
+        {
+            Mat = new ShaderMaterial{Albedo = Albedo, Specular = Specular, Emissive = Emissive, Roughness = Roughness};
+            bMaterialChanged = false;
+        }
         
         // EVENTS
+        private void Awake()
+        {
+            MeshFilter = GetComponent<MeshFilter>();
+            bMaterialChanged = true;
+            reconstructMeshData();
+        }
+
         private void Start()
         {
+            Mat = new ShaderMaterial
+            {
+                Albedo = new Vector3(0,1.0f,0 ),
+                Specular = new Vector3(0.15f,0.15f,0.15f),
+                Emissive = new Vector3(0,0,0),
+                Roughness = 0.5f
+            };
+            MeshFilter = GetComponent<MeshFilter>();
+            bMaterialChanged = true;
             reconstructMeshData();
         }
 
         private void OnEnable()
         {
             RT_Master.registerObject(this);
+            bMaterialChanged = true;
         }
 
         private void OnDisable()
@@ -141,6 +156,8 @@ namespace Source.RayTracing
             
             if (transform.hasChanged)
                 reconstructMeshData();
+            if (bMaterialChanged)
+                reconstructMaterialData();
             
             RT_Master.registerObject(this);
         } 

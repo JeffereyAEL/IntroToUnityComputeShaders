@@ -12,7 +12,24 @@ namespace Source.Editor
     [CustomEditor(typeof(RT_Object))]
     public class EDITOR_RT_Object : UnityEditor.Editor
     {
-        // methods
+        // ENUMS
+        /// <summary>
+        /// Defines the Unity Editor preset that will be exposed for this RT_Object's material
+        /// </summary>
+        private enum MaterialType
+        {
+            Metallic,
+            Matte,
+            Light
+        };
+    
+        // ATTRIBUTES
+        /// <summary>
+        /// This RT_Object's material preset
+        /// </summary>
+        private MaterialType MatType = MaterialType.Matte;
+
+        // METHODS
         /// <summary>
         /// Uses a more user friendly color field for visually representative Vector3 
         /// </summary>
@@ -40,29 +57,30 @@ namespace Source.Editor
         {
             DrawDefaultInspector();
             var obj = target as RT_Object;
-
+            if (obj == null) return;
+            MatType = (MaterialType)EditorGUILayout.EnumPopup("Material Type", MatType);
             // Switches between different editor presets depending on the material class of the object 
-            switch (obj.MatType)
+            switch (MatType)
             {
-                case RT_Object.MaterialType.Metallic:
-                    obj.Mat.Albedo = Vector3.one;
-                    getVec3FromColorField("Specular", ref obj.Mat.Specular);
-                    getVec3FromColorField("Emissive", ref obj.Mat.Emissive);
-                    obj.Mat.Roughness = EditorGUILayout.FloatField("Roughness", obj.Mat.Roughness);
+                case MaterialType.Metallic:
+                    obj.Albedo = Vector3.one;
+                    getVec3FromColorField("Specular", ref obj.Specular);
+                    getVec3FromColorField("Emissive", ref obj.Emissive);
+                    obj.Roughness = EditorGUILayout.FloatField("Roughness", obj.Roughness);
                     break;
 
-                case RT_Object.MaterialType.Matte:
-                    getVec3FromColorField("Albedo", ref obj.Mat.Albedo);
-                    getVec3FromFloatField("Specular", ref obj.Mat.Specular);
-                    getVec3FromColorField("Emissive", ref obj.Mat.Emissive);
-                    obj.Mat.Roughness = EditorGUILayout.FloatField("Roughness", obj.Mat.Roughness);
+                case MaterialType.Matte:
+                    getVec3FromColorField("Albedo", ref obj.Albedo);
+                    getVec3FromFloatField("Specular", ref obj.Specular);
+                    getVec3FromColorField("Emissive", ref obj.Emissive);
+                    obj.Roughness = EditorGUILayout.FloatField("Roughness", obj.Roughness);
                     break;
                 
-                case RT_Object.MaterialType.Light:
-                    obj.Mat.Albedo = Vector3.one;
-                    obj.Mat.Specular = Vector3.zero;
-                    getVec3FromFloatField("Emissive", ref obj.Mat.Emissive);
-                    obj.Mat.Roughness = 0.0f;
+                case MaterialType.Light:
+                    obj.Albedo = Vector3.one;
+                    obj.Specular = Vector3.zero;
+                    getVec3FromFloatField("Emissive", ref obj.Emissive);
+                    obj.Roughness = 0.0f;
                     break;
                 
                 default:

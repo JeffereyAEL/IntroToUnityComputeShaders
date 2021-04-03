@@ -3,6 +3,7 @@ using Source.RayTracing;
 using UnityEngine;
 using UnityEditor;
 using Source.Utilities;
+using Debug = System.Diagnostics.Debug;
 
 namespace Source.Editor
 {
@@ -18,36 +19,14 @@ namespace Source.Editor
         private bool bGUIChanged;
         
         /// Whether to expose advanced lighting editor details
-        public bool bAdvancedLighting = false;
+        [NonSerialized] private bool bAdvancedLighting;
         
         /// whether to expose advanced optimizations fields in the GUI
-        public bool bExposeOptimizations;
+        [NonSerialized] private bool bExposeOptimizations;
         
         /// whether to expose the sphere fields in the GUI
-        [HideInInspector]  public bool bExposeSpheres;
-
-        /// <summary>
-        /// Uses a more user friendly color field for visually representative Vector3 
-        /// </summary>
-        /// <param name="name"> The name of the field </param>
-        /// <param name="Value"> The value to adjust with the editor field </param>
-        private static void getVec3FromColorField(string name, ref Vector3 Value)
-        {
-            var color = EditorGUILayout.ColorField(name, Misc._ToRGBA(Value));
-            Value = Misc._ToRGB(color);
-        }
+        [NonSerialized] private bool bExposeSpheres;
         
-        /// <summary>
-        /// Uses a more user friendly color field for visually representative Vector3 
-        /// </summary>
-        /// <param name="name"> The name of the field </param>
-        /// <param name="Value"> The value to adjust with the editor field </param>
-        private static void getVec3FromFloatField(string name, ref Vector3 Value)
-        {
-            var uni = EditorGUILayout.FloatField(name, Value.x);
-            Value = new Vector3(uni, uni, uni);
-        }
-
         /// <summary>
         /// Allows for testing of attribute changes of a specific section of code and the setting of a dirty flag
         /// related to those attributes
@@ -74,6 +53,7 @@ namespace Source.Editor
         /// <param name="Src"> the value to set </param>
         /// <param name="Incoming"> the result of a EditorGUILayout function </param>
         /// <typeparam name="T"> the type of the Src variable </typeparam>
+        // ReSharper disable once RedundantAssignment
         private void objIrrelevantChange<T>(ref T Src, T Incoming)
         {
             Src = Incoming;

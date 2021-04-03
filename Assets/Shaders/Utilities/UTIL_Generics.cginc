@@ -1,6 +1,8 @@
-﻿#pragma once
+﻿#ifndef __GENERICS__
+#define __GENERICS__
+
 // ReSharper disable CppUnusedIncludeDirective
-#include <UnityShaderVariables.cginc>
+#include "UnityShaderVariables.cginc"
 // ReSharper restore CppUnusedIncludeDirective
 
 /// UNIFORMS
@@ -48,3 +50,4 @@ float Energy(float3 v) {
 float Energy(float2 v) {
     return dot(v, 1.0f / 2.0f);
 }
+#endif

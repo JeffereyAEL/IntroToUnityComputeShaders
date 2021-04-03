@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿#ifndef __SHAPES__
+#define __SHAPES__
 
 /// A material struct, contains all information for lighting
 struct Material {
@@ -45,17 +46,20 @@ struct Sphere {
     Material Mat;
 };
 
-/// Defining a Mesh in data
-struct Mesh {
-    float4x4 LocalToWorld;
-    uint IOffset;
-    uint ICount;
-    Material Mat;
-};
-
 /// Defining an Axis Aligned Box in data
 struct AABox {
     float3 Min;
     float3 Max;
     uint Ref;
 };
+
+/// Defining a Mesh in data
+struct Mesh {
+    AABox Bounds;
+    float4x4 LocalToWorld;
+    uint IOffset;
+    uint ICount;
+    Material Mat;
+};
+
+#endif
