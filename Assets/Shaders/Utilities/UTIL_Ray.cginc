@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include <UnityShaderVariables.cginc>
 #include "UTIL_Generics.cginc"
 #include "UTIL_Shapes.cginc"
 
@@ -75,4 +74,49 @@ inline bool Collision(Ray r, AABox b) {
             end = t2[i];
     }
     return start < end && start > EPSILON && end > EPSILON;
+}
+
+
+
+/// TODO: eventually get rid of this
+void DebugCollision(Ray r, inout Hit best, AABox b) {
+    float3 inv_ray_d = 1/r.Dir;
+    float3 t1 = (b.Min - r.Origin) * inv_ray_d;
+    float3 t2 = (b.Max - r.Origin) * inv_ray_d;
+    float start = 0, end = INF;
+
+    float3 norm = FLOAT3(0.0f);
+    if (t1.x > t1.y)
+    {
+        if (t1.x > t1.z)
+            norm.x = 1;
+        else
+            norm.z = 1;
+    }
+    else
+    {
+        if (t1.y > t1.z)
+            norm.y = 1;
+        else
+            norm.z = 1;
+    }
+    
+    for (uint i = 0; i < 3; ++i)
+    {
+        if (r.Dir[i] == 0 &&
+            (r.Origin[i] < t1[i] || r.Origin[i] > t2[i]))
+                continue;
+        if (t1[i] > start)
+            start = t1[i];
+        if (t2[i] < end)
+            end = t2[i];
+    }
+    
+    if (start < end && start > EPSILON && end > EPSILON && best.Dist > start)
+    {
+        best = Hit_Construct(r, start);
+        //best.Norm[norm] = 1.0f;
+        best.Norm = norm;
+        best.Mat = Material_Construct(float3(0,1,0), FLOAT3(0), FLOAT3(0), 1.5f);
+    }
 }

@@ -1,4 +1,7 @@
 ﻿#pragma once
+// ReSharper disable CppUnusedIncludeDirective
+#include <UnityShaderVariables.cginc>
+// ReSharper restore CppUnusedIncludeDirective
 
 /// UNIFORMS
 extern float4x4 _CameraInverseProjection;
@@ -17,7 +20,7 @@ static const float EPSILON = 1e-8;
 
 // MACROS
 /// Constructs a hardcoded uniform float3
-#define FlOAT3(value) float3(value, value, value)
+#define FLOAT3(value) float3(value, value, value)
 
 // FUNCTIONS
 /// Returns a random float

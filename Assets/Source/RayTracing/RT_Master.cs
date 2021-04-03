@@ -85,9 +85,9 @@ namespace Source.RayTracing
         private static List<ShaderAABox> Bounds = new List<ShaderAABox>();
         
         /// x = Spheres idx, y = time offset, z = original y, w = radius rel max y offset  
-        private List<Vector4> BobbingSpheres = new List<Vector4>(); 
-        
+        private List<Vector4> BobbingSpheres = new List<Vector4>();
         // ReSharper restore FieldCanBeMadeReadOnly.Local
+        
         /// Compute Buffers for shape data
         private ComputeBuffer SphereBuffer;
         private ComputeBuffer MeshBuffer;
@@ -122,15 +122,13 @@ namespace Source.RayTracing
             Bounds.Clear();
             foreach(var obj in RayTracingObjects)
             {
-                var mesh = obj.GetComponent<MeshFilter>().sharedMesh;
-                
                 // add vertex data
                 var vertex_offset = Vertices.Count;
-                Vertices.AddRange(mesh.vertices);
+                Vertices.AddRange(obj.getVertices());
                 
                 // add index data - if the vertex buff wasn't empty before it needs to be offset
                 var index_offset = Indices.Count;
-                var indices = mesh.GetIndices(0);
+                var indices = obj.getIndices();
                 Indices.AddRange(indices.Select(Index => Index + vertex_offset));
                 
                 // add the object itself
@@ -143,12 +141,7 @@ namespace Source.RayTracing
                     Mat =  obj.getMaterial()
                 });
 
-                /// TODO: generate your own axis aligned bounding boxes
-                /// https://www.youtube.com/watch?v=TrqK-atFfWY @ 27:30
-                ShaderAABox box;
-                var temp = obj.getBounds();
-                box.Max = local_to_world.MultiplyPoint(temp.max);
-                box.Min = local_to_world.MultiplyPoint(temp.min);
+                var box = obj.getBounds();
                 box.Ref = Meshes.Count - 1;
                 print($"Bounds : Min={box.Min}, Max={box.Max}, idx={box.Ref}");
                 Bounds.Add(box);
@@ -207,7 +200,7 @@ namespace Source.RayTracing
             New_sphere.Mat.Specular = me ? new Vector3(color.r, color.g, color.b) : Vector3.one * 0.04f;
             New_sphere.Mat.Emissive = em ? new Vector3(Random.value, Random.value, Random.value) : Vector3.zero;
             New_sphere.Mat.Roughness = Random.value;
-            print("Created a sphere");
+            // print("Created a sphere");
             return false;
         }
         protected override void setShaderParameters()
@@ -247,7 +240,7 @@ namespace Source.RayTracing
             // Set the target and dispatch the compute shader
             ComponentComputeShader.SetTexture(0, "Result", Result);
             
-            dispatchShader(ref ComponentComputeShader, 16.0f, 16.0f);
+            dispatchShader(ref ComponentComputeShader, 32.0f, 32.0f);
 
             // Blit the resulting texture to the screen
             if (MaterialAdditive == null)
@@ -333,9 +326,9 @@ namespace Source.RayTracing
     /// </summary>
     public enum LightingType 
     {
-        [UsedImplicitly] LambertDiffuse = 1,
-        [UsedImplicitly] PhongSpecular = 2,
-        [UsedImplicitly] ChanceDiffSpec = 3
+        [UsedImplicitly] LambertDiffuse = 0,
+        [UsedImplicitly] PhongSpecular = 1,
+        [UsedImplicitly] ChanceDiffSpec = 2
     };
 
     /// <summary>
@@ -344,6 +337,7 @@ namespace Source.RayTracing
     public enum MeshCollisionType
     {
         [UsedImplicitly] RawMeshCollision = 0,
-        [UsedImplicitly] BoundsCollision = 1
+        [UsedImplicitly] BoundsCollision = 1,
+        [UsedImplicitly] DebugBoundsCollision = 2,
     };
 }
