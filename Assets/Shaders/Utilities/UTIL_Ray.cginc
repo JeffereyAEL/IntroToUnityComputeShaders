@@ -90,7 +90,7 @@ void DebugCollision(inout Ray r, inout Hit best, AABox b) {
 
     if (t_min < t_max && t_max > EPSILON)
     {
-        r.ColorWeight = FLOAT3(0.0f);
+        //r.ColorWeight = FLOAT3(0.0f);
         best = Hit_Construct(r, t_min);
         // best.Norm = normalize(best.Pos - r.Origin);
         best.Norm = FLOAT3(0.0f);
@@ -118,7 +118,7 @@ void DebugCollision(inout Ray r, inout Hit best, AABox b) {
         {
             best.Norm.z = 1.0f;
         }
-        best.Mat = Material_Construct(float3(1,0,0), FLOAT3(.5), FLOAT3(0.15f), .5f);
+        best.Mat = Material_Construct(float3(1,0,0), FLOAT3(.2), FLOAT3(0.0f), .2f);
     }
 }
 #endif
