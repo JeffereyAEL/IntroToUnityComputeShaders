@@ -117,6 +117,7 @@ namespace Source.RayTracing
         private void rebuildMeshObjectBuffers()
         {
             if (!bMeshBuffersDirty) return;
+            print("rebuilding mesh obj data");
             CurrentSample = 0;
             bMeshBuffersDirty = false;
             
@@ -136,8 +137,7 @@ namespace Source.RayTracing
                 Indices.AddRange(indices.Select(Index => Index + vertex_offset));
                 
                 var box = obj.getBounds();
-                box.Ref = Meshes.Count - 1;
-                print($"Bounds : Min={box.Min}, Max={box.Max}, idx={box.Ref}");
+                print($"Bounds : Min={box.Min}, Max={box.Max}");
                 
                 // add the object itself
                 var local_to_world = obj.transform.localToWorldMatrix;
@@ -151,7 +151,7 @@ namespace Source.RayTracing
                 });
             }
 
-            createComputeBuffer(ref MeshBuffer, Meshes, 140);
+            createComputeBuffer(ref MeshBuffer, Meshes, 136);
             createComputeBuffer(ref VertexBuffer, Vertices, 12);
             createComputeBuffer(ref IndexBuffer, Indices, 4);
         }
@@ -260,14 +260,15 @@ namespace Source.RayTracing
         {
             CurrentSample = 0;
             setupScene();
+            rebuildMeshObjectBuffers();
         }
-
+        
         private void OnDisable()
         {
-           SphereBuffer?.Dispose();
-           MeshBuffer?.Dispose();
-           VertexBuffer?.Dispose();
-           IndexBuffer?.Dispose();
+           SphereBuffer?.Release();
+           MeshBuffer?.Release();
+           VertexBuffer?.Release();
+           IndexBuffer?.Release();
         }
 
         private void Update()
@@ -285,7 +286,7 @@ namespace Source.RayTracing
                 bSpheresChanged = false;
             }
 
-            if (CurrentSample % 1000 == 0 || Input.GetKeyUp(KeyCode.P))
+            if (CurrentSample % 1000 == 0 && CurrentSample != 0 || Input.GetKeyUp(KeyCode.P))
             {
                 var name = $"RayTrace_{RandomSeed}_{SphereNumMax}_{SphereRad}_{SpherePlacementRad}";
                 var file_location = ImageDestination + name;

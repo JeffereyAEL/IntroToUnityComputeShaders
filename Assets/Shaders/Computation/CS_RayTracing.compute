@@ -115,10 +115,6 @@ void IntersectMeshObject(Ray r, inout Hit best, Mesh mesh)
     uint count = offset + mesh.ICount;
     for (uint i = offset; i < count; i += 3)
     {
-        
-        // float3 a = (mul(mesh.LocalToWorld, float4(_Vertices[_Indices[i]], 1))).xyz;
-        // float3 b = (mul(mesh.LocalToWorld, float4(_Vertices[_Indices[i + 1]], 1))).xyz;
-        // float3 c = (mul(mesh.LocalToWorld, float4(_Vertices[_Indices[i + 2]], 1))).xyz;
         float3 a = _Vertices[_Indices[i]];
         float3 b = _Vertices[_Indices[i + 1]];
         float3 c = _Vertices[_Indices[i + 2]];
@@ -148,8 +144,10 @@ Hit Trace(Ray r) {
     for (i = 0; i < count; ++i)
         IntersectSphere(r, best, _Spheres[i]);
 
-    
     _Meshes.GetDimensions(count, stride);
+    // AABox bounds;
+    // bounds.Min = float3(-.5f, .5f, -.5f);
+    // bounds.Max = float3(.5f, 1.5f, .5f);
     switch (_MeshCollisionMode)
     {
     case RAW:
@@ -202,7 +200,7 @@ float3 Shade(inout Ray r, Hit h) {
     float3 tex = _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float2(phi, theta), 0.0f).xyz;
 
     // blend sky color and skybox texture sample
-    return (_UsingSkybox * tex + (1.0f - _UsingSkybox) * _SkyColor.rgb) * 1.1f;
+    return IfBlend(tex, _SkyColor, _UsingSkybox) * 1.1f;
 }
 
 /// MAIN ===============================================================================================================

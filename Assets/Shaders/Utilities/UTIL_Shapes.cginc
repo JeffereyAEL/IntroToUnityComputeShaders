@@ -50,7 +50,6 @@ struct Sphere {
 struct AABox {
     float3 Min;
     float3 Max;
-    uint Ref;
 };
 
 /// Defining a Mesh in data

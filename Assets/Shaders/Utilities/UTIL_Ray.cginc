@@ -60,65 +60,65 @@ inline Hit Hit_Construct(Ray r, float d) {
 }
 
 inline bool Collision(Ray r, AABox b) {
-    float3 inv_ray_d = 1/r.Dir;
-    float3 t1 = (b.Min - r.Origin) * inv_ray_d;
-    float3 t2 = (b.Max - r.Origin) * inv_ray_d;
-    float start = 0, end = INF;
-    
-    for (uint i = 0; i < 3; ++i)
+    float3 inv_dir = float3(1.0f / r.Dir.x, 1.0f / r.Dir.y, 1.0f / r.Dir.z);
+    float3 t1, t2;
+    uint i;
+    float t_min = -INF, t_max = INF;
+    for (i = 0; i < 3; ++i)
     {
-        if (r.Dir[i] == 0 &&
-            (r.Origin[i] < t1[i] || r.Origin[i] > t2[i]))
-                continue;
-        if (t1[i] > start)
-            start = t1[i];
-        if (t2[i] < end)
-            end = t2[i];
+        t1[i] = (b.Min[i] - r.Origin[i]) * inv_dir[i];
+        t2[i] = (b.Max[i] - r.Origin[i]) * inv_dir[i];
     }
-    return start < end && start > EPSILON && end > EPSILON;
+    t_min = max(max(min(t1.x, t2.x), min(t1.y, t2.y)), min(t1.z, t2.z));
+    t_max = min(min(max(t1.x, t2.x), max(t1.y, t2.y)), max(t1.z, t2.z));
+
+    return t_min < t_max && t_max > EPSILON;
 }
 
-
-
-/// TODO: eventually get rid of this
-void DebugCollision(Ray r, inout Hit best, AABox b) {
-    float3 inv_ray_d = 1/r.Dir;
-    float3 t1 = (b.Min - r.Origin) * inv_ray_d;
-    float3 t2 = (b.Max - r.Origin) * inv_ray_d;
-    float start = 0, end = INF;
-
-    float3 norm = FLOAT3(0.0f);
-    if (t1.x > t1.y)
+void DebugCollision(inout Ray r, inout Hit best, AABox b) {
+    float3 inv_dir = float3(1.0f / r.Dir.x, 1.0f / r.Dir.y, 1.0f / r.Dir.z);
+    float3 t1, t2;
+    uint i;
+    float t_min = -INF, t_max = INF;
+    for (i = 0; i < 3; ++i)
     {
-        if (t1.x > t1.z)
-            norm.x = 1;
-        else
-            norm.z = 1;
+        t1[i] = (b.Min[i] - r.Origin[i]) * inv_dir[i];
+        t2[i] = (b.Max[i] - r.Origin[i]) * inv_dir[i];
     }
-    else
+    t_min = max(max(min(t1.x, t2.x), min(t1.y, t2.y)), min(t1.z, t2.z));
+    t_max = min(min(max(t1.x, t2.x), max(t1.y, t2.y)), max(t1.z, t2.z));
+
+    if (t_min < t_max && t_max > EPSILON)
     {
-        if (t1.y > t1.z)
-            norm.y = 1;
-        else
-            norm.z = 1;
-    }
-    
-    for (uint i = 0; i < 3; ++i)
-    {
-        if (r.Dir[i] == 0 &&
-            (r.Origin[i] < t1[i] || r.Origin[i] > t2[i]))
-                continue;
-        if (t1[i] > start)
-            start = t1[i];
-        if (t2[i] < end)
-            end = t2[i];
-    }
-    
-    if (start < end && start > EPSILON && end > EPSILON && best.Dist > start)
-    {
-        best = Hit_Construct(r, start);
-        best.Norm = norm;
-        best.Mat = Material_Construct(float3(1,1,1), FLOAT3(0), FLOAT3(1), 1.5f);
+        r.ColorWeight = FLOAT3(0.0f);
+        best = Hit_Construct(r, t_min);
+        // best.Norm = normalize(best.Pos - r.Origin);
+        best.Norm = FLOAT3(0.0f);
+        if (Equal(best.Pos.x, b.Min.x))
+        {
+            best.Norm.x = -1.0f;
+        }
+        else if (Equal(best.Pos.x, b.Max.x))
+        {
+            best.Norm.x = 1.0f;
+        }
+        else if (Equal(best.Pos.y, b.Min.y))
+        {
+            best.Norm.y = -1.0f;
+        }
+        else if (Equal(best.Pos.y, b.Max.y))
+        {
+            best.Norm.y = 1.0f;
+        }
+        else if (Equal(best.Pos.z, b.Min.z))
+        {
+            best.Norm.z = -1.0f;
+        }
+        else if (Equal(best.Pos.z, b.Max.z))
+        {
+            best.Norm.z = 1.0f;
+        }
+        best.Mat = Material_Construct(float3(1,0,0), FLOAT3(.5), FLOAT3(0.15f), .5f);
     }
 }
 #endif

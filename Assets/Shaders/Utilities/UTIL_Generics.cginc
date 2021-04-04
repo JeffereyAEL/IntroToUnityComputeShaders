@@ -50,4 +50,57 @@ float Energy(float3 v) {
 float Energy(float2 v) {
     return dot(v, 1.0f / 2.0f);
 }
+
+/// returns a blend of A and B based on the alpha
+inline float Blend(float a, float b, float alpha) {
+    return a * alpha + b * (1 - alpha);
+}
+/// returns a blend of A and B based on the alpha
+inline float Blend(float2 a, float2 b, float alpha) {
+    return a * alpha + b * (1 - alpha);
+}
+/// returns a blend of A and B based on the alpha
+inline float Blend(float3 a, float3 b, float alpha) {
+    return a * alpha + b * (1 - alpha);
+}
+/// returns a blend of A and B based on the alpha
+inline float Blend(float4 a, float4 b, float alpha) {
+    return a * alpha + b * (1 - alpha);
+}
+
+/// returns a if is_a else returns b
+inline float IfBlend(int a, int b, uint is_a) {
+    return a * is_a + b * (1 - is_a);
+}
+/// returns a if is_a else returns b
+inline float IfBlend(uint a, uint b, uint is_a) {
+    return a * is_a + b * (1 - is_a);
+}
+/// returns a if is_a else returns b
+inline float IfBlend(float a, float b, uint is_a) {
+    return a * is_a + b * (1 - is_a);
+}
+/// returns a if is_a else returns b
+inline float IfBlend(float2 a, float2 b, uint is_a) {
+    return a * is_a + b * (1 - is_a);
+}
+/// returns a if is_a else returns b
+inline float IfBlend(float3 a, float3 b, uint is_a) {
+    return a * is_a + b * (1 - is_a);
+}
+/// returns a if is_a else returns b
+inline float IfBlend(float4 a, float4 b, uint is_a) {
+    return a * is_a + b * (1 - is_a);
+}
+
+/// Compares floats given a margin of error
+inline bool Equal(float a, float b) {
+    return a > b - EPSILON && a < b + EPSILON;
+}
+/// Compares floats given a margin of error
+inline bool Equal(float a, float b, float margin) {
+    return a > b - margin && a < b + margin;
+}
+
+/// if 
 #endif

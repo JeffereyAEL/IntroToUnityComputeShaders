@@ -49,8 +49,6 @@ namespace Source.RayTracing
         private ShaderMaterial Mat;
 
         private MeshFilter MeshFilter;
-
-        private bool bUninitialized = true;
         
         // GETTERS_/_SETTERS
         /// <summary>
@@ -109,13 +107,14 @@ namespace Source.RayTracing
                         max[o] = Vertices[i][o];
                 }
             }
-            AABounding = new ShaderAABox{Max = max, Min = min, Ref = 0};
+            AABounding = new ShaderAABox{Max = max, Min = min};
             
             transform.hasChanged = false;
         }
 
         private void reconstructMaterialData()
         {
+            print("reconstructing material data");
             Mat = new ShaderMaterial{Albedo = Albedo, Specular = Specular, Emissive = Emissive, Roughness = Roughness};
             bMaterialChanged = false;
         }
@@ -123,21 +122,8 @@ namespace Source.RayTracing
         // EVENTS
         private void Awake()
         {
-            bUninitialized = true;
             MeshFilter = GetComponent<MeshFilter>();
             bMaterialChanged = true;
-            reconstructMeshData();
-        }
-
-        private void Start()
-        {
-            if (!bUninitialized) return;
-            Mat.Albedo = Vector3.one;
-            Mat.Specular = Vector3.zero;
-            Mat.Emissive = Vector3.zero;
-            Mat.Roughness = 0.5f;
-            bUninitialized = false;
-            reconstructMeshData();
         }
 
         private void OnEnable()
