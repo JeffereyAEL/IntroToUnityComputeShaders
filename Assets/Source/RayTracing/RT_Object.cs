@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Numerics;
 using Source.Utilities;
 using UnityEditor.Rendering;
 using UnityEngine;
+using Vector3 = UnityEngine.Vector3;
 
 namespace Source.RayTracing
 {
@@ -48,6 +50,8 @@ namespace Source.RayTracing
 
         private MeshFilter MeshFilter;
 
+        private bool bUninitialized = true;
+        
         // GETTERS_/_SETTERS
         /// <summary>
         /// returns this RT_Object's ShaderMaterial
@@ -119,6 +123,7 @@ namespace Source.RayTracing
         // EVENTS
         private void Awake()
         {
+            bUninitialized = true;
             MeshFilter = GetComponent<MeshFilter>();
             bMaterialChanged = true;
             reconstructMeshData();
@@ -126,22 +131,20 @@ namespace Source.RayTracing
 
         private void Start()
         {
-            Mat = new ShaderMaterial
-            {
-                Albedo = new Vector3(0,1.0f,0 ),
-                Specular = new Vector3(0.15f,0.15f,0.15f),
-                Emissive = new Vector3(0,0,0),
-                Roughness = 0.5f
-            };
-            MeshFilter = GetComponent<MeshFilter>();
-            bMaterialChanged = true;
+            if (!bUninitialized) return;
+            Mat.Albedo = Vector3.one;
+            Mat.Specular = Vector3.zero;
+            Mat.Emissive = Vector3.zero;
+            Mat.Roughness = 0.5f;
+            bUninitialized = false;
             reconstructMeshData();
         }
 
         private void OnEnable()
         {
+            reconstructMeshData();
+            reconstructMaterialData();
             RT_Master.registerObject(this);
-            bMaterialChanged = true;
         }
 
         private void OnDisable()

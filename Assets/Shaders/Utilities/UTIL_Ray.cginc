@@ -118,7 +118,7 @@ void DebugCollision(Ray r, inout Hit best, AABox b) {
     {
         best = Hit_Construct(r, start);
         best.Norm = norm;
-        best.Mat = Material_Construct(float3(0,1,0), FLOAT3(0), FLOAT3(0), 1.5f);
+        best.Mat = Material_Construct(float3(1,1,1), FLOAT3(0), FLOAT3(1), 1.5f);
     }
 }
 #endif

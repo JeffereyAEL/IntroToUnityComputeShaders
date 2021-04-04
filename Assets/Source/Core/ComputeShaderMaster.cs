@@ -32,6 +32,21 @@ namespace Source.Core
         /// <param name="Output"></param>
         protected abstract void OnRenderImage(RenderTexture Src, RenderTexture Output);
 
+        protected static void saveTexture (RenderTexture Render_texture, string File_location) {
+            byte[] bytes = toTexture2D(Render_texture).EncodeToPNG();
+            System.IO.File.WriteAllBytes(File_location, bytes);
+        }
+
+        protected static Texture2D toTexture2D(RenderTexture Render_texture)
+        {
+            Texture2D tex = new Texture2D(Render_texture.width, Render_texture.height, TextureFormat.RGB24, false);
+            RenderTexture.active = Render_texture;
+            tex.ReadPixels(new Rect(0, 0, Render_texture.width, Render_texture.height), 0, 0);
+            tex.Apply();
+            Destroy(tex);//prevents memory leak
+            return tex;
+        }
+        
         /// <summary>
         /// A handler that cleans up dispatching shaders to the GPU with reference to Screen computations
         /// </summary>
@@ -109,7 +124,7 @@ namespace Source.Core
             // If RenderTexture already initialized break
             if (Tex != null && Tex.width == Width && Tex.height == Height) return;
 
-            // Release render Texture if already initialized
+            // Release render Render_texture if already initialized
             if (Tex != null)
                 Tex.Release();
 

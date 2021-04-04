@@ -16,7 +16,8 @@ namespace Source.RayTracing
         /// temporary ref for quickly changing the dispatch size of the compute shader
         /// </summary>
         private const float DispatchX = 8.0f, DispatchY = 8.0f;
-        
+
+        private const string ImageDestination = "C:/Users/Jefferey Schlueter/Pictures/RayTracerScreenshots/";
         /// Skybox ref texture
         public Texture SkyboxSrc;
 
@@ -284,8 +285,15 @@ namespace Source.RayTracing
                 bSpheresChanged = false;
             }
 
+            if (CurrentSample % 1000 == 0 || Input.GetKeyUp(KeyCode.P))
+            {
+                var name = $"RayTrace_{RandomSeed}_{SphereNumMax}_{SphereRad}_{SpherePlacementRad}";
+                var file_location = ImageDestination + name;
+                saveTexture(Converged, file_location);
+                print($"texture, \"{name}\" made @ {CurrentSample} samples");
+            }
+            
             if (!IsSphereBobbing) return;
-
             foreach (var data in BobbingSpheres)
             {
                 var s = Spheres[(int)data.x];
