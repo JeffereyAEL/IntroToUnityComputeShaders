@@ -1,19 +1,28 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
-/// INCLUDES
-// Our neat and tidy include package
+#ifndef __RAY_TRACING__
+#define __RAY_TRACING__
+
+// INCLUDES
 #include "Assets/Shaders/Utilities/UTIL_Graphics.cginc"
+#include "Assets/Shaders/Utilities/UTIL_Ray.cginc"
 
-/// DEFINES
-#define LAMBERT_DIFFUSE 1
-#define PHONG_SPECULAR 2
-#define CHANCE_DIFF_SPEC 3
+// DEFINES
+#define GROUND_ALBEDO float3(1.0f, 1.0f, 1.0f)
+#define GROUND_SPECULAR float3(0.04f, 0.04f, 0.04f)
+#define GROUND_EMISSION  float3(0.0f, 0.0f, 0.0f)
+#define GROUND_ROUGHNESS 0.85f
 
-#define RAW_MESH_COLLISION 0
-#define BOUNDS_COLLISION 1
+#define DIFFUSE 0
+#define SPECULAR 1
+#define DIFFUSE_SPECULAR 2
 
-/// EXTERNS
+#define RAW 0
+#define BOUNDS 1
+#define DEBUG_BOUNDS 2
+
+// EXTERNS
 extern RWTexture2D<float4> Result;
 
 extern uint _LightingMode;
@@ -31,16 +40,10 @@ extern StructuredBuffer<Sphere> _Spheres;
 extern StructuredBuffer<Mesh> _Meshes;
 extern StructuredBuffer<float3> _Vertices;
 extern StructuredBuffer<int> _Indices;
-extern StructuredBuffer<AABox> _Bounds;
+
 extern float2 _PixelOffset;
 
-/// CONSTANTS
-static const float3 GROUND_ALBEDO = float3(1.0f, 1.0f, 1.0f);
-static const float3 GROUND_SPECULAR = float3(0.04f, 0.04f, 0.04f);
-static const float3 GROUND_EMISSION = float3(0.0f, 0.0f, 0.0f);
-static const float GROUND_ROUGHNESS = 0.85f;
-
-/// INTERSECTIONS 
+// INTERSECTIONS 
 void IntersectGroundPlane(Ray r, inout Hit best) {
     // calc the distance along the ray where the ground plane is intersected
     float t = -r.Origin.y / r.Dir.y;
@@ -112,11 +115,10 @@ void IntersectMeshObject(Ray r, inout Hit best, Mesh mesh)
     uint count = offset + mesh.ICount;
     for (uint i = offset; i < count; i += 3)
     {
+        float3 a = _Vertices[_Indices[i]];
+        float3 b = _Vertices[_Indices[i + 1]];
+        float3 c = _Vertices[_Indices[i + 2]];
         
-        float3 a = (mul(mesh.LocalToWorld, float4(_Vertices[_Indices[i]], 1))).xyz;
-        float3 b = (mul(mesh.LocalToWorld, float4(_Vertices[_Indices[i + 1]], 1))).xyz;
-        float3 c = (mul(mesh.LocalToWorld, float4(_Vertices[_Indices[i + 2]], 1))).xyz;
-            
         float t, u, v;
         if (IntersectTriangle(r, a, b, c, t, u, v))
         {
@@ -131,7 +133,7 @@ void IntersectMeshObject(Ray r, inout Hit best, Mesh mesh)
     }
 }
 
-/// RAY TRACING GUTS
+// RAY TRACING GUTS
 Hit Trace(Ray r) {
     Hit best = Hit_Construct();
     uint count, stride, i;
@@ -142,21 +144,27 @@ Hit Trace(Ray r) {
     for (i = 0; i < count; ++i)
         IntersectSphere(r, best, _Spheres[i]);
 
+    _Meshes.GetDimensions(count, stride);
+    // AABox bounds;
+    // bounds.Min = float3(-.5f, .5f, -.5f);
+    // bounds.Max = float3(.5f, 1.5f, .5f);
     switch (_MeshCollisionMode)
     {
-        case RAW_MESH_COLLISION:
-            _Meshes.GetDimensions(count, stride);
-            for (i = 0; i < count; ++i)
+    case RAW:
+        for (i = 0; i < count; ++i)
+            IntersectMeshObject(r, best, _Meshes[i]);
+        break;
+    case BOUNDS:
+        for (i = 0; i < count; ++i)
+            if (Collision(r, _Meshes[i].Bounds))
                 IntersectMeshObject(r, best, _Meshes[i]);
-            break;
-        case BOUNDS_COLLISION:
-            _Bounds.GetDimensions(count, stride);
-            for (i = 0; i < count; ++i)
-                if (Collision(r, _Bounds[i]))
-                    IntersectMeshObject(r, best, _Meshes[_Bounds[i].Ref]);
-            break;
-        default:
-            break;
+        break;
+    case DEBUG_BOUNDS:
+        for (i = 0; i < count; ++i)
+            DebugCollision(r, best, _Meshes[i].Bounds);
+        break;
+    default:
+        break;
     }
     
 
@@ -168,17 +176,18 @@ float3 Shade(inout Ray r, Hit h) {
     {
         switch (_LightingMode)
         {
-            case LAMBERT_DIFFUSE:
-                LambertDiffuse(r, h);
-                break;
-            case PHONG_SPECULAR:
-                PhongSpecular(r, h);
-                break;
-            case CHANCE_DIFF_SPEC:
-                ChanceDiffuseSpecular(r, h);
-                break;
-            default:
-                break; // there are no defaults
+        case DIFFUSE:
+            LambertDiffuse(r, h);
+            break;
+        case SPECULAR:
+            PhongSpecular(r, h);
+            break;
+        case DIFFUSE_SPECULAR:
+            ChanceDiffuseSpecular(r, h);
+            break;
+        
+        default:
+            break; // there are no defaults
         }
         return h.Mat.Emissive;
     }
@@ -191,11 +200,11 @@ float3 Shade(inout Ray r, Hit h) {
     float3 tex = _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float2(phi, theta), 0.0f).xyz;
 
     // blend sky color and skybox texture sample
-    return (_UsingSkybox * tex + (1.0f - _UsingSkybox) * _SkyColor.rgb) * 1.1f;
+    return IfBlend(tex, _SkyColor, _UsingSkybox) * 1.1f;
 }
 
 /// MAIN ===============================================================================================================
-[numthreads(16,16,1)]
+[numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     // Set globals
@@ -212,12 +221,14 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
     // trace and shader
     float3 color = float3(0, 0, 0);
-    for (uint i = 0; i < _MaxBounce + 1; ++i)
+    for (uint i = 0; i < 32; ++i) //
     {
         Hit hit = Trace(ray);
         color += ray.ColorWeight * Shade(ray, hit);
-        if (!any(ray.ColorWeight))
+        if (!any(ray.ColorWeight) || i == _MaxBounce + 1)
             break;
     }
     Result[id.xy] = float4(color, 1.0f);
 }
+
+#endif

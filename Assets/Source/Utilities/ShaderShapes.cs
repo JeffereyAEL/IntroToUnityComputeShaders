@@ -25,23 +25,25 @@ namespace Source.Utilities
     };
 
     /// <summary>
-    /// A mirrored Mesh structure as defined in Source/Shaders/UtilityShaders/UTIL_Shapes.cginc
-    /// </summary>
-    public struct ShaderMesh
-    {
-        [UsedImplicitly] public Matrix4x4 LocalToWorld;
-        [UsedImplicitly] public int IndicesOffset;
-        [UsedImplicitly] public int IndicesCount;
-        [UsedImplicitly] public ShaderMaterial Mat;
-    };
-    
-    /// <summary>
     /// A mirrored Axis Aligned Box structure as defined in Source/Shaders/UtilityShaders/UTIL_Shapes.cginc
     /// </summary>
     public struct ShaderAABox
     {
         [UsedImplicitly] public Vector3 Min;
         [UsedImplicitly] public Vector3 Max;
-        [UsedImplicitly] public int Ref;
     }
+    
+    /// <summary>
+    /// A mirrored Mesh structure as defined in Source/Shaders/UtilityShaders/UTIL_Shapes.cginc
+    /// </summary>
+    public struct ShaderMesh
+    {
+        [UsedImplicitly] public ShaderAABox Bounds;
+        [UsedImplicitly] public Matrix4x4 LocalToWorld;
+        [UsedImplicitly] public int IndicesOffset;
+        [UsedImplicitly] public int IndicesCount;
+        [UsedImplicitly] public ShaderMaterial Mat;
+    };
+    
+    
 }

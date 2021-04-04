@@ -1,5 +1,6 @@
-﻿// INCLUDES
-#pragma once
+﻿#ifndef __GRAPHICS__
+#define __GRAPHICS__
+
 #include "UTIL_Generics.cginc"
 #include "UTIL_Ray.cginc"
 
@@ -80,7 +81,7 @@ void ChanceDiffuseSpecular(inout Ray r, Hit h) {
     float roulette = Rand();
 
     
-    r.Origin = h.Pos + h.Norm * 0.001f;
+    r.Origin = h.Pos + h.Norm * EPSILON;
     if (roulette < spec_chance)
     {
         // specular reflection
@@ -97,3 +98,5 @@ void ChanceDiffuseSpecular(inout Ray r, Hit h) {
         r.ColorWeight *= (1.0f / diff_chance) * h.Mat.Albedo;
     }
 }
+
+#endif

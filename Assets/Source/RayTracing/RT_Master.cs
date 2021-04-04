@@ -7,10 +7,17 @@ using Source.Core;
 using Source.Utilities;
 using Random = UnityEngine.Random;
 
+// TODO: add OnEnable event that grabs all RT_Objects in the scene and forces them to re-register
 namespace Source.RayTracing
 {
     public class RT_Master : ComputeShaderMaster
     {
+        /// <summary>
+        /// temporary ref for quickly changing the dispatch size of the compute shader
+        /// </summary>
+        private const float DispatchX = 8.0f, DispatchY = 8.0f;
+
+        private const string ImageDestination = "C:/Users/Jefferey Schlueter/Pictures/RayTracerScreenshots/";
         /// Skybox ref texture
         public Texture SkyboxSrc;
 
@@ -30,7 +37,7 @@ namespace Source.RayTracing
         [HideInInspector]  public float PhongAlpha = 15.0f;
         
         /// The type of lighting being used
-        public LightingType LightingMode = LightingType.ChanceDiffSpec;
+        [HideInInspector] public LightingType LightingMode = LightingType.ChanceDiffSpec;
         
         /// the number of Spheres to try an generate on Awake
         [HideInInspector][SerializeField]  public MeshCollisionType MeshCollisionMode;
@@ -82,18 +89,16 @@ namespace Source.RayTracing
         private static List<ShaderMesh> Meshes = new List<ShaderMesh>();
         private static List<Vector3> Vertices = new List<Vector3>();
         private static List<int> Indices = new List<int>();
-        private static List<ShaderAABox> Bounds = new List<ShaderAABox>();
         
         /// x = Spheres idx, y = time offset, z = original y, w = radius rel max y offset  
-        private List<Vector4> BobbingSpheres = new List<Vector4>(); 
-        
+        private List<Vector4> BobbingSpheres = new List<Vector4>();
         // ReSharper restore FieldCanBeMadeReadOnly.Local
+        
         /// Compute Buffers for shape data
         private ComputeBuffer SphereBuffer;
         private ComputeBuffer MeshBuffer;
         private ComputeBuffer VertexBuffer;
         private ComputeBuffer IndexBuffer;
-        private ComputeBuffer BoundsBuffer;
         
         /// The current sample; used to track anti-aliasing
         private uint CurrentSample;
@@ -112,6 +117,7 @@ namespace Source.RayTracing
         private void rebuildMeshObjectBuffers()
         {
             if (!bMeshBuffersDirty) return;
+            print("rebuilding mesh obj data");
             CurrentSample = 0;
             bMeshBuffersDirty = false;
             
@@ -119,45 +125,35 @@ namespace Source.RayTracing
             Meshes.Clear();
             Vertices.Clear();
             Indices.Clear();
-            Bounds.Clear();
             foreach(var obj in RayTracingObjects)
             {
-                var mesh = obj.GetComponent<MeshFilter>().sharedMesh;
-                
                 // add vertex data
                 var vertex_offset = Vertices.Count;
-                Vertices.AddRange(mesh.vertices);
+                Vertices.AddRange(obj.getVertices());
                 
                 // add index data - if the vertex buff wasn't empty before it needs to be offset
                 var index_offset = Indices.Count;
-                var indices = mesh.GetIndices(0);
+                var indices = obj.getIndices();
                 Indices.AddRange(indices.Select(Index => Index + vertex_offset));
+                
+                var box = obj.getBounds();
+                print($"Bounds : Min={box.Min}, Max={box.Max}");
                 
                 // add the object itself
                 var local_to_world = obj.transform.localToWorldMatrix;
                 Meshes.Add(new ShaderMesh()
                 {
+                    Bounds = box,
                     LocalToWorld = local_to_world,
                     IndicesOffset = index_offset,
                     IndicesCount = indices.Length,
                     Mat =  obj.getMaterial()
                 });
-
-                /// TODO: generate your own axis aligned bounding boxes
-                /// https://www.youtube.com/watch?v=TrqK-atFfWY @ 27:30
-                ShaderAABox box;
-                var temp = obj.getBounds();
-                box.Max = local_to_world.MultiplyPoint(temp.max);
-                box.Min = local_to_world.MultiplyPoint(temp.min);
-                box.Ref = Meshes.Count - 1;
-                print($"Bounds : Min={box.Min}, Max={box.Max}, idx={box.Ref}");
-                Bounds.Add(box);
             }
 
-            createComputeBuffer(ref MeshBuffer, Meshes, 112);
+            createComputeBuffer(ref MeshBuffer, Meshes, 136);
             createComputeBuffer(ref VertexBuffer, Vertices, 12);
             createComputeBuffer(ref IndexBuffer, Indices, 4);
-            createComputeBuffer(ref BoundsBuffer, Bounds, 28);
         }
         
         /// <summary>
@@ -207,7 +203,7 @@ namespace Source.RayTracing
             New_sphere.Mat.Specular = me ? new Vector3(color.r, color.g, color.b) : Vector3.one * 0.04f;
             New_sphere.Mat.Emissive = em ? new Vector3(Random.value, Random.value, Random.value) : Vector3.zero;
             New_sphere.Mat.Roughness = Random.value;
-            print("Created a sphere");
+            // print("Created a sphere");
             return false;
         }
         protected override void setShaderParameters()
@@ -230,7 +226,6 @@ namespace Source.RayTracing
             setComputeBuffer("_Vertices", VertexBuffer);
             setComputeBuffer("_Indices", IndexBuffer);
             setComputeBuffer("_Spheres", SphereBuffer);
-            setComputeBuffer("_Bounds", BoundsBuffer);
         }
 
         protected override void OnRenderImage(RenderTexture Src, RenderTexture Output)
@@ -247,7 +242,7 @@ namespace Source.RayTracing
             // Set the target and dispatch the compute shader
             ComponentComputeShader.SetTexture(0, "Result", Result);
             
-            dispatchShader(ref ComponentComputeShader, 16.0f, 16.0f);
+            dispatchShader(ref ComponentComputeShader, DispatchX, DispatchY);
 
             // Blit the resulting texture to the screen
             if (MaterialAdditive == null)
@@ -265,8 +260,9 @@ namespace Source.RayTracing
         {
             CurrentSample = 0;
             setupScene();
+            rebuildMeshObjectBuffers();
         }
-
+        
         private void OnDisable()
         {
            SphereBuffer?.Release();
@@ -290,8 +286,15 @@ namespace Source.RayTracing
                 bSpheresChanged = false;
             }
 
+            if (CurrentSample % 1000 == 0 && CurrentSample != 0 || Input.GetKeyUp(KeyCode.P))
+            {
+                var name = $"RayTrace_{RandomSeed}_{SphereNumMax}_{SphereRad}_{SpherePlacementRad}";
+                var file_location = ImageDestination + name;
+                saveTexture(Converged, file_location);
+                print($"texture, \"{name}\" made @ {CurrentSample} samples");
+            }
+            
             if (!IsSphereBobbing) return;
-
             foreach (var data in BobbingSpheres)
             {
                 var s = Spheres[(int)data.x];
@@ -333,9 +336,9 @@ namespace Source.RayTracing
     /// </summary>
     public enum LightingType 
     {
-        [UsedImplicitly] LambertDiffuse = 1,
-        [UsedImplicitly] PhongSpecular = 2,
-        [UsedImplicitly] ChanceDiffSpec = 3
+        [UsedImplicitly] LambertDiffuse,
+        [UsedImplicitly] PhongSpecular,
+        [UsedImplicitly] ChanceDiffSpec
     };
 
     /// <summary>
@@ -343,7 +346,8 @@ namespace Source.RayTracing
     /// </summary>
     public enum MeshCollisionType
     {
-        [UsedImplicitly] RawMeshCollision = 0,
-        [UsedImplicitly] BoundsCollision = 1
+        [UsedImplicitly] RawMeshCollision,
+        [UsedImplicitly] BoundsCollision,
+        [UsedImplicitly] DebugBoundsCollision,
     };
 }

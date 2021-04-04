@@ -214,8 +214,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 589031753}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -76.9, y: 49.9, z: -108.6}
-  m_LocalScale: {x: 30, y: 30, z: 30}
+  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 3
@@ -227,16 +227,15 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 589031753}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 22e6bc3dab884b8495bffca1bc98f10f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  MatType: 0
-  Albedo: {x: 1, y: 1, z: 1}
-  Specular: {x: 1, y: 1, z: 1}
+  Albedo: {x: 0, y: 0, z: 0}
+  Specular: {x: 0, y: 0, z: 0}
   Emissive: {x: 0, y: 0, z: 0}
-  Roughness: -2
+  Roughness: 0
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
@@ -408,13 +407,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
-  m_LocalRotation: {x: 0.15569364, y: -0.67819214, z: 0.15035157, w: 0.7022886}
-  m_LocalPosition: {x: 180, y: 100, z: 0}
+  m_LocalRotation: {x: 0.15304591, y: -0.6903456, z: 0.15304591, w: 0.6903456}
+  m_LocalPosition: {x: 4, y: 2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 25, y: -88, z: 0}
+  m_LocalEulerAnglesHint: {x: 25, y: -90, z: 0}
 --- !u!114 &963194229
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -431,17 +430,17 @@ MonoBehaviour:
   SkyboxSrc: {fileID: 2800000, guid: f7087e3d0beb6f3408464d5ac3c43686, type: 3}
   DirectionalLight: {fileID: 705507994}
   IsUsingSkybox: 0
-  SkyColor: {r: 1, g: 1, b: 1, a: 1}
+  SkyColor: {r: 0.4716981, g: 0.4716981, b: 0.4716981, a: 1}
   MaxBounce: 10
   PhongAlpha: 15
-  LightingMode: 3
+  LightingMode: 0
   MeshCollisionMode: 0
-  SphereNumMax: 0
-  SphereRad: {x: 5, y: 30}
-  SpherePlacementRad: 100
+  SphereNumMax: 100
+  SphereRad: {x: 0.05, y: 0.3}
+  SpherePlacementRad: 1
   IsSphereBobbing: 0
   MaxRelitiveBob: 3
-  RandomSeed: 0
+  RandomSeed: 68675
 --- !u!114 &963194230
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -488,11 +487,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22e6bc3dab884b8495bffca1bc98f10f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  MatType: 1
-  Albedo: {x: 1, y: 0, z: 0}
-  Specular: {x: 0.5, y: 0.5, z: 0.5}
-  Emissive: {x: 0, y: 0, z: 0}
-  Roughness: 0.2
+  Albedo: {x: 0, y: 0, z: 0}
+  Specular: {x: 0, y: 0, z: 0}
+  Emissive: {x: 1, y: 1, z: 1}
+  Roughness: 0
 --- !u!135 &1145813926
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -563,8 +561,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1145813924}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 52.3, y: 92.88899, z: 55.3}
-  m_LocalScale: {x: 47.49015, y: 47.49015, z: 47.49015}
+  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 4
@@ -658,13 +656,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1225485579}
-  m_LocalRotation: {x: 0, y: 0, z: 0.38268343, w: 0.92387956}
-  m_LocalPosition: {x: 0, y: 90, z: 0}
-  m_LocalScale: {x: 30, y: 30, z: 30}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 2
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 45}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1225485584
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -672,13 +670,12 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1225485579}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 22e6bc3dab884b8495bffca1bc98f10f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  MatType: 0
-  Albedo: {x: 1, y: 1, z: 1}
-  Specular: {x: 0, y: 0, z: 0}
+  Albedo: {x: 0.15562145, y: 0.5849056, z: 0}
+  Specular: {x: 0.05, y: 0.05, z: 0.05}
   Emissive: {x: 0, y: 0, z: 0}
-  Roughness: 0
+  Roughness: 0.375

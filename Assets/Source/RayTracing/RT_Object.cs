@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Numerics;
 using Source.Utilities;
 using UnityEditor.Rendering;
 using UnityEngine;
+using Vector3 = UnityEngine.Vector3;
 
 namespace Source.RayTracing
 {
@@ -13,65 +15,121 @@ namespace Source.RayTracing
     [RequireComponent(typeof(MeshFilter))]
     public class RT_Object : MonoBehaviour
     {
-        /// <summary>
-        /// Defines the Unity Editor preset that will be exposed for this RT_Object's material
-        /// </summary>
-        public enum MaterialType
-        {
-            Metallic,
-            Matte,
-            Light
-        }
-
-        /// <summary>
-        /// This RT_Object's material preset
-        /// </summary>
-        public MaterialType MatType = MaterialType.Light;
-
+        // ENUMS
+        // STRUCTSs
+        // ATTRIBUTES
         [HideInInspector] public Vector3 Albedo;
         [HideInInspector] public Vector3 Specular;
         [HideInInspector] public Vector3 Emissive;
         [HideInInspector] public float Roughness;
         
         /// <summary>
-        /// Whether this material has been changed since last rendering began
-        /// </summary>s
-        [NonSerialized] public bool bMaterialChanged = true;
-        
-        /// <summary>
-        /// This RT_object's rendering material
+        /// Mesh vertex * localToWorld data
         /// </summary>
-        public ShaderMaterial Mat;
-        
+        private Vector3[] Vertices;
+
         /// <summary>
-        /// Whether this RT_Object's material has been initialized (prevents dirty rendering)
+        /// Mesh index data
         /// </summary>
-        private bool bUninitialized = true;
+        private int[] Indices;
 
         /// <summary>
         /// The Axis Aligned Bounding Box of this RT_Object's mesh
         /// </summary>
-        private Bounds AABounding;
+        private ShaderAABox AABounding;
+
+        /// <summary>
+        /// Whether this material has been changed since last rendering began
+        /// </summary>s
+        [NonSerialized] public bool bMaterialChanged = true;
+
+        /// <summary>
+        /// This RT_object's rendering material
+        /// </summary>
+        private ShaderMaterial Mat;
+
+        private MeshFilter MeshFilter;
         
-        private void Awake()
+        // GETTERS_/_SETTERS
+        /// <summary>
+        /// returns this RT_Object's ShaderMaterial
+        /// </summary>
+        /// <returns> RT_Object's Material </returns>
+        public ShaderMaterial getMaterial()
         {
-            bUninitialized = true;
-            
+            return Mat;
+        }
+
+        /// <summary>
+        /// getter for the axis-aligned bounds of the transformed mesh
+        /// </summary>
+        public ShaderAABox getBounds()
+        {
+            return AABounding;
+        }
+
+        /// <summary>
+        /// getter for the vertex * localToWorld data of the mesh
+        /// </summary>
+        public Vector3[] getVertices()
+        {
+            return Vertices;
+        }
+
+        /// <summary>
+        /// getter for the index data of the mesh
+        /// </summary>
+        public int[] getIndices()
+        {
+            return Indices;
         }
         
-        private void Start()
+        // METHODS
+        /// <summary>
+        /// constructs compute shader friendly mesh data from unity defaults
+        /// </summary>
+        private void reconstructMeshData()
         {
-            if (!bUninitialized) return;
-            Mat.Albedo = Vector3.one;
-            Mat.Specular = Vector3.zero;
-            Mat.Emissive = Vector3.zero;
-            Mat.Roughness = 0.5f;
-            bUninitialized = false;
+            var m = MeshFilter.sharedMesh;
+            Indices = m.GetIndices(0);
+            Vertices = m.vertices;
+            var local_to_world = transform.localToWorldMatrix;
+            Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue), 
+                max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+            for (var i = 0; i < Vertices.Length; ++i)
+            {
+                Vertices[i] = local_to_world.MultiplyPoint(Vertices[i]);
+                for (var o = 0; o < 3; ++o)
+                {
+                    if (Vertices[i][o] < min[o])
+                        min[o] = Vertices[i][o];
+                    if (Vertices[i][o] > max[o])
+                        max[o] = Vertices[i][o];
+                }
+            }
+            AABounding = new ShaderAABox{Max = max, Min = min};
+            
+            transform.hasChanged = false;
+        }
+
+        private void reconstructMaterialData()
+        {
+            print("reconstructing material data");
+            Mat = new ShaderMaterial{Albedo = Albedo, Specular = Specular, Emissive = Emissive, Roughness = Roughness};
+            bMaterialChanged = false;
+        }
+        
+        // EVENTS
+        private void Awake()
+        {
+            MeshFilter = GetComponent<MeshFilter>();
+            bMaterialChanged = true;
         }
 
         private void OnEnable()
         {
-            initData();
+            reconstructMeshData();
+            reconstructMaterialData();
             RT_Master.registerObject(this);
         }
 
@@ -84,38 +142,14 @@ namespace Source.RayTracing
         {
             if (!transform.hasChanged && !bMaterialChanged) return;
             RT_Master.unregisterObject(this);
-
-            initData();
-
+            
+            if (transform.hasChanged)
+                reconstructMeshData();
+            if (bMaterialChanged)
+                reconstructMaterialData();
+            
             RT_Master.registerObject(this);
-            transform.hasChanged = false;
-        }
-
-        private void initData()
-        {
-            AABounding = GetComponent<MeshFilter>().sharedMesh.bounds;
-            Mat = new ShaderMaterial
-            {
-                Albedo = Albedo,
-                Emissive = Emissive,
-                Roughness = Roughness,
-                Specular = Specular
-            };
-            bMaterialChanged = false;
-        }
+        } 
         
-        /// <summary>
-        /// returns this RT_Object's ShaderMaterial
-        /// </summary>
-        /// <returns> RT_Object's Material </returns>
-        public ShaderMaterial getMaterial()
-        {
-            return Mat;
-        }
-
-        public Bounds getBounds()
-        {
-            return AABounding;
-        }
     }
 }
