@@ -1,0 +1,236 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+#ifndef __RAY_TRACING__
+#define __RAY_TRACING__
+
+// INCLUDES
+#define INCLUDE_KD_TREE // include KdTree externs and the definition
+#include "Assets/Shaders/Utilities/UTIL_Graphics.cginc"
+#include "Assets/Shaders/Utilities/UTIL_Ray.cginc"
+
+// TODO: try implementing cbuffer types instead of structuredbuffers
+// DEFINES
+// 
+// TODO: implement this and replace the macro-defined ground attributes 
+extern StructuredBuffer<Material> _GroundMat;
+#define GROUND_ALBEDO float3(1.0f, 1.0f, 1.0f)
+#define GROUND_SPECULAR float3(0.04f, 0.04f, 0.04f)
+#define GROUND_EMISSION  float3(0.0f, 0.0f, 0.0f)
+#define GROUND_ROUGHNESS 0.85f
+
+#define DIFFUSE 0
+#define SPECULAR 1
+#define DIFFUSE_SPECULAR 2
+
+#define RAW 0
+#define BOUNDS 1
+#define KDTREE 2
+
+// EXTERNS
+extern RWTexture2D<float4> Result;
+
+extern uint _LightingMode;
+extern uint _MeshCollisionMode;
+
+extern uint _MaxBounce;
+extern float4 _DirectionalLight;
+
+extern Texture2D<float4> _SkyboxTexture;
+extern SamplerState sampler_SkyboxTexture;
+extern float3 _SkyColor;
+extern float _UsingSkybox;
+
+extern StructuredBuffer<Sphere> _Spheres;
+extern StructuredBuffer<Mesh> _Meshes;
+extern StructuredBuffer<float3> _Vertices;
+extern StructuredBuffer<int> _Indices;
+
+extern AABox _SceneBounds;
+
+extern float2 _PixelOffset;
+
+// INTERSECTIONS 
+void IntersectGroundPlane(Ray r, inout Hit best) {
+    // calc the distance along the ray where the ground plane is intersected
+    float t = -r.Origin.y / r.Dir.y;
+    if (t > 0 && t < best.Dist)
+    {
+        best = Hit_Construct(r, t);
+        best.Mat = Material_Construct(GROUND_ALBEDO, GROUND_SPECULAR, GROUND_EMISSION, GROUND_ROUGHNESS);
+    }
+}
+
+void IntersectSphere(Ray r, inout Hit best, Sphere s) {
+    // calc the distance along the ray where the sphere is intersected
+    float3 d = r.Origin - s.Pos;
+    float p1 = -dot(r.Dir, d);
+    float p2sqr = p1 * p1 - dot(d,d) + s.Rad * s.Rad;
+    if (p2sqr < 0)
+        return;
+    float p2 = sqrt(p2sqr);
+    float t = p1 - p2 > 0 ? p1 - p2 : p1 + p2;
+    if (t > 0 && t < best.Dist)
+    {
+        best = Hit_Construct(r, t);
+        best.Norm = normalize(best.Pos - s.Pos);
+        best.Mat = s.Mat;
+    }
+}
+
+bool IntersectTriangle(Ray r, float3 a, float3 b, float3 c, inout float t, inout float u, inout float v) {
+    // create two edges;
+    float3 edge1 = b - a;
+    float3 edge2 = c - a;
+
+    // begin calc determinants
+    float3 pvec = cross(r.Dir, edge2);
+
+    // if determinant is near zero, ray lies in plane of triangle
+    float det = dot(edge1, pvec);
+
+    // use backface culling
+    if (det < EPSILON)
+        return false;
+    float inv_det = 1.0f / det;
+
+    // calc distance from a to r.Origin
+    float3 tvec = r.Origin - a;
+
+    // calc the U parameter and test bounds
+    u = dot(tvec, pvec) * inv_det;
+    if (u < 0.0 || u > 1.0f)
+        return false;
+
+    // prepare to test v parameter
+    float3 qvec = cross(tvec, edge1);
+
+    // calc v parameter and test bounds
+    v = dot(r.Dir, qvec) * inv_det;
+    if (v < 0.0f || u + v > 1.0f)
+        return false;
+
+    // calc t, ray intersects triangle
+    t = dot(edge2, qvec) * inv_det;
+
+    return true;
+}
+
+void IntersectMeshObject(Ray r, inout Hit best, Mesh mesh)
+{
+    uint offset = mesh.IOffset;
+    uint count = offset + mesh.ICount;
+    for (uint i = offset; i < count; i += 3)
+    {
+        float3 a = _Vertices[_Indices[i]];
+        float3 b = _Vertices[_Indices[i + 1]];
+        float3 c = _Vertices[_Indices[i + 2]];
+        
+        float t, u, v;
+        if (IntersectTriangle(r, a, b, c, t, u, v))
+        {
+            if (t > 0 && t < best.Dist)
+            {
+                // TODO: replace the position calc with barycentric coordinates instead of t & position
+                best = Hit_Construct(r, t);
+                best.Norm = normalize(cross(b - a, c - a));
+                best.Mat = Material_Construct(mesh.Mat);
+            }
+        }
+    }
+}
+
+// RAY TRACING GUTS
+Hit Trace(Ray r) {
+    Hit best = Hit_Construct();
+    uint count, stride, i;
+    
+    IntersectGroundPlane(r, best);
+
+    _Spheres.GetDimensions(count, stride);
+    for (i = 0; i < count; ++i)
+        IntersectSphere(r, best, _Spheres[i]);
+
+    _Meshes.GetDimensions(count, stride);
+    switch (_MeshCollisionMode)
+    {
+    case RAW:
+        for (i = 0; i < count; ++i)
+            IntersectMeshObject(r, best, _Meshes[i]);
+        break;
+    case BOUNDS:
+        for (i = 0; i < count; ++i)
+            if (Collision(r, _Meshes[i].Bounds))
+                IntersectMeshObject(r, best, _Meshes[i]);
+        break;
+    case KDTREE:
+        break;
+    default:
+        break;
+    }
+    
+
+    return best;
+}
+
+float3 Shade(inout Ray r, Hit h) {
+    if (h.Dist < INF)   // We hit something
+    {
+        switch (_LightingMode)
+        {
+        case DIFFUSE:
+            LambertDiffuse(r, h);
+            break;
+        case SPECULAR:
+            PhongSpecular(r, h);
+            break;
+        case DIFFUSE_SPECULAR:
+            ChanceDiffuseSpecular(r, h);
+            break;
+        
+        default:
+            break; // there are no defaults
+        }
+        return h.Mat.Emissive;
+    }
+    // else, we hit nothing, return the skybox tex n zero energy, sky isn't reflective
+    r.ColorWeight = 0.0f;
+
+    // sample from the skybox
+    float theta = acos(r.Dir.y) / -PI;
+    float phi = atan2(r.Dir.x, -r.Dir.z) / -PI * 0.5f;
+    float3 tex = _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float2(phi, theta), 0.0f).xyz;
+
+    // blend sky color and skybox texture sample
+    return IfBlend(tex, _SkyColor, _UsingSkybox) * 1.1f;
+}
+
+/// MAIN ===============================================================================================================
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    // Set globals
+    _Pixels = id.xy;
+    
+    // Get the dimensions of the RenderTexture
+    uint w, h;
+    Result.GetDimensions(w, h);
+
+    // Transform pixel to [-1,1] range
+    float2 uv = float2((id.xy + _PixelOffset) / float2(w, h) * 2.0f - 1.0f);
+
+    Ray ray = Ray_FromCamera(uv);
+
+    // trace and shader
+    float3 color = float3(0, 0, 0);
+    for (uint i = 0; i < 32; ++i) //
+    {
+        Hit hit = Trace(ray);
+        color += ray.ColorWeight * Shade(ray, hit);
+        if (!any(ray.ColorWeight) || i == _MaxBounce + 1)
+            break;
+    }
+    Result[id.xy] = float4(color, 1.0f);
+}
+
+#endif

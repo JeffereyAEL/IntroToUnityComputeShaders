@@ -32,11 +32,17 @@ namespace Source.Core
         /// <param name="Output"></param>
         protected abstract void OnRenderImage(RenderTexture Src, RenderTexture Output);
 
-        protected static void saveTexture (RenderTexture Render_texture, string File_location) {
-            byte[] bytes = toTexture2D(Render_texture).EncodeToPNG();
+        protected static void saveTexture(Texture2D Texture_2d, string File_location)
+        {
+            byte[] bytes = Texture_2d.EncodeToPNG();
             System.IO.File.WriteAllBytes(File_location, bytes);
         }
 
+        protected static void saveTexture (RenderTexture Render_texture, string File_location)
+        {
+            saveTexture(toTexture2D(Render_texture), File_location);
+        }
+        
         protected static Texture2D toTexture2D(RenderTexture Render_texture)
         {
             Texture2D tex = new Texture2D(Render_texture.width, Render_texture.height, TextureFormat.RGB24, false);
@@ -51,10 +57,10 @@ namespace Source.Core
         /// A handler that cleans up dispatching shaders to the GPU with reference to Screen computations
         /// </summary>
         /// <param name="Shader"> the compute shader to be dispatched </param>
-        /// <param name="Divider_x"> splitting the width of the screen by the # Dividers to find threadGroupsX </param>
-        /// <param name="Divider_y"> splitting the height of the screen by the # Dividers to find threadGroupsY </param>
+        /// <param name="Divider_x"> The first argument in Shader's numthreads decorator </param>
+        /// <param name="Divider_y"> The second argument in Shader's numthreads decorator </param>
         /// <param name="Thread_groups_z"> Number of Z threadGroups, usually 1 for graphical computations </param>
-        /// <param name="Kernal_index"> Kernal Index, 1 for most basic compute shaders </param>
+        /// <param name="Kernal_index"> Kernal Index, 0 for most basic compute shaders </param>
         protected static void dispatchShader(ref ComputeShader Shader, float Divider_x, float Divider_y, int Thread_groups_z = 1,
             int Kernal_index = 0)
         {
@@ -119,7 +125,11 @@ namespace Source.Core
         /// <param name="Tex"> The RenderTexture to initialize </param>
         /// <param name="Width"> The desired width of the RenderTexture in Vector4s </param>
         /// <param name="Height"> The desired height of the RenderTexture in Vector4s </param>
-        protected static void initRenderTexture(ref RenderTexture Tex, int Width, int Height)
+        /// <param name="Format"> The desired render texture Format </param>
+        /// <param name="Read_write"> The desired render texture read/write type </param>
+        protected static void initRenderTexture(ref RenderTexture Tex, int Width, int Height, 
+            RenderTextureFormat Format = RenderTextureFormat.ARGBFloat,
+            RenderTextureReadWrite Read_write = RenderTextureReadWrite.Linear)
         {
             // If RenderTexture already initialized break
             if (Tex != null && Tex.width == Width && Tex.height == Height) return;
@@ -130,8 +140,8 @@ namespace Source.Core
 
             // Get render target for raytracing
             Tex = new RenderTexture(Width, Height, 0,
-                RenderTextureFormat.ARGBFloat,
-                RenderTextureReadWrite.Linear) {enableRandomWrite = true};
+                Format,
+                Read_write) {enableRandomWrite = true};
             Tex.Create();
         }
         
@@ -139,9 +149,11 @@ namespace Source.Core
         /// A handler for initializing RenderTextures that presumes the texture to be the size of the Screen
         /// </summary>
         /// <param name="Tex"> The RenderTexture to initialize </param>
-        protected static void initRenderTexture(ref RenderTexture Tex)
+        protected static void initRenderTexture(ref RenderTexture Tex, 
+            RenderTextureFormat Format = RenderTextureFormat.ARGBFloat,
+            RenderTextureReadWrite Read_write = RenderTextureReadWrite.Linear)
         {
-            initRenderTexture(ref Tex, Screen.width, Screen.height);
+            initRenderTexture(ref Tex, Screen.width, Screen.height, Format, Read_write);
         }
         
         protected virtual void Awake()

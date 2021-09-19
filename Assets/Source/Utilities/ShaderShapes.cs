@@ -44,6 +44,13 @@ namespace Source.Utilities
         [UsedImplicitly] public int IndicesCount;
         [UsedImplicitly] public ShaderMaterial Mat;
     };
-    
-    
+
+    public struct ShaderKdTreeNode
+    {
+        [UsedImplicitly] public int LChild, RChild; // indx in buffer
+        [UsedImplicitly] public int SplitIdx; // either x, y, or z 
+        [UsedImplicitly] public float SplitDist;
+        [UsedImplicitly] public int LeafNum;
+        [UsedImplicitly] public int Leaves;
+    }
 }

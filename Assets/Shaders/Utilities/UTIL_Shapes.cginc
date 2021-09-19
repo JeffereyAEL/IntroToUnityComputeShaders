@@ -61,4 +61,33 @@ struct Mesh {
     Material Mat;
 };
 
+#ifdef INCLUDE_KD_TREE
+
+#ifndef REDEFINE_KD_TREE_MAX
+#define KD_TREE_LEAF_MAX  300
+#endif
+
+#define KD_TREE_LEAF_POINTS KD_TREE_LEAF_MAX * 3
+struct KdTreeNode {
+    uint LChild, RChild;
+    int SplitIdx;
+    float SplitDist;
+    uint LeafNum;
+    int Leaves[KD_TREE_LEAF_POINTS];
+};
+struct KdTreeHitResult {
+    uint LeafNum;
+    int Leaves[KD_TREE_LEAF_POINTS];
+};
+KdTreeHitResult KdTreeHitResult_Construct(uint amt, int data[KD_TREE_LEAF_POINTS]) {
+    KdTreeHitResult h;
+    h.LeafNum = amt;
+    for (uint i = 0; i < KD_TREE_LEAF_POINTS; ++i)
+        h.Leaves[i] = data[i];
+    return h;
+}
+int EMPTY_KD_TREE_HIT_LEAVES[KD_TREE_LEAF_POINTS];
+extern StructuredBuffer<KdTreeNode> _KdTree;
+#endif
+
 #endif

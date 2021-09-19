@@ -41,6 +41,9 @@ namespace Source.RayTracing
         
         /// the number of Spheres to try an generate on Awake
         [HideInInspector][SerializeField]  public MeshCollisionType MeshCollisionMode;
+
+        /// the amount of triangles that can be inside of a KdTree Node
+        [HideInInspector] public int KdTreeLeafMax = 10;
         
         /// the number of Spheres to try an generate on Awake
         [HideInInspector]  public int SphereNumMax = 10000;
@@ -55,7 +58,7 @@ namespace Source.RayTracing
         [HideInInspector] public bool IsSphereBobbing;
         
         /// Percent of the radius that a sphere will bob
-        [HideInInspector] public float MaxRelitiveBob = 3.0f;
+        [HideInInspector] public float MaxRelativeBob = 3.0f;
         
         /// <summary>
         /// The seed for Unity's Random engine
@@ -155,6 +158,50 @@ namespace Source.RayTracing
             createComputeBuffer(ref VertexBuffer, Vertices, 12);
             createComputeBuffer(ref IndexBuffer, Indices, 4);
         }
+
+        private void rebuildMeshSceneData()
+        {
+            if (!bMeshBuffersDirty) return;
+            print("rebuilding mesh obj data");
+            CurrentSample = 0;
+            bMeshBuffersDirty = false;
+            
+            // clear all lists
+            Meshes.Clear();
+            Vertices.Clear();
+            Indices.Clear();
+
+            var kd_tree = new List<ShaderKdTreeNode>();
+            var root = new ShaderKdTreeNode();
+            int i;
+            // start with AABB for scene
+            var SceneBounds = new ShaderAABox
+            {
+                Max = Vector3.negativeInfinity, 
+                Min = Vector3.positiveInfinity
+            };
+            foreach (var obj in RayTracingObjects)
+            {
+                var b = obj.getBounds();
+                for (i = 0; i < 3; ++i)
+                {
+                    if (b.Max[i] > SceneBounds.Max[i]) SceneBounds.Max[i] = b.Max[i];
+                    if (b.Min[i] < SceneBounds.Min[i]) SceneBounds.Min[i] = b.Min[i];
+                }
+            }
+            // choose which side to split (i.e. longest
+            var dim_largest = 0; var dim_len = Single.NegativeInfinity;
+            for (i = 0; i < 3; ++i)
+                if (SceneBounds.Max[i] - SceneBounds.Min[i] > dim_len)
+                {
+                    dim_largest = i;
+                    dim_len = SceneBounds.Max[i] - SceneBounds.Min[i];
+                }
+            root.SplitIdx = dim_largest;
+            // choosing split distance
+            
+            
+        }
         
         /// <summary>
         /// Registers a given RT_Object to this script so that the scene can be re-rendered w/ it
@@ -222,6 +269,7 @@ namespace Source.RayTracing
             ComponentComputeShader.SetFloat("_UsingSkybox", IsUsingSkybox ? 1.0f : 0.0f);
             ComponentComputeShader.SetVector("_SkyColor", SkyColor); 
             ComponentComputeShader.SetInt("_MeshCollisionMode", (int)MeshCollisionMode);
+            ComponentComputeShader.SetInt("_KdTreeLeafMax", KdTreeLeafMax);
             setComputeBuffer("_Meshes", MeshBuffer);
             setComputeBuffer("_Vertices", VertexBuffer);
             setComputeBuffer("_Indices", IndexBuffer);
@@ -288,7 +336,7 @@ namespace Source.RayTracing
 
             if (CurrentSample % 1000 == 0 && CurrentSample != 0 || Input.GetKeyUp(KeyCode.P))
             {
-                var name = $"RayTrace_{RandomSeed}_{SphereNumMax}_{SphereRad}_{SpherePlacementRad}";
+                var name = $"RayTrace_{RandomSeed}_{SphereNumMax}_{SphereRad}_{SpherePlacementRad}.png";
                 var file_location = ImageDestination + name;
                 saveTexture(Converged, file_location);
                 print($"texture, \"{name}\" made @ {CurrentSample} samples");
@@ -321,7 +369,7 @@ namespace Source.RayTracing
                     Spheres.Add(new_sphere);
                     if (new_sphere.Mat.Emissive != Vector3.zero) // if it's emissive
                     {
-                        BobbingSpheres.Add(new Vector4(Spheres.Count-1, Random.value, new_sphere.Rad, Random.value * new_sphere.Rad * MaxRelitiveBob));
+                        BobbingSpheres.Add(new Vector4(Spheres.Count-1, Random.value, new_sphere.Rad, Random.value * new_sphere.Rad * MaxRelativeBob));
                     }
                 }
             }
@@ -348,6 +396,6 @@ namespace Source.RayTracing
     {
         [UsedImplicitly] RawMeshCollision,
         [UsedImplicitly] BoundsCollision,
-        [UsedImplicitly] DebugBoundsCollision,
+        [UsedImplicitly] KDTreeCollision,
     };
 }

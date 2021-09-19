@@ -232,7 +232,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22e6bc3dab884b8495bffca1bc98f10f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Albedo: {x: 0, y: 0, z: 0}
+  Albedo: {x: 1, y: 1, z: 1}
   Specular: {x: 0, y: 0, z: 0}
   Emissive: {x: 0, y: 0, z: 0}
   Roughness: 0
@@ -342,6 +342,7 @@ GameObject:
   - component: {fileID: 963194226}
   - component: {fileID: 963194230}
   - component: {fileID: 963194229}
+  - component: {fileID: 963194231}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -421,7 +422,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d50549a7645b448d893ac39c648121c5, type: 3}
   m_Name: 
@@ -430,16 +431,17 @@ MonoBehaviour:
   SkyboxSrc: {fileID: 2800000, guid: f7087e3d0beb6f3408464d5ac3c43686, type: 3}
   DirectionalLight: {fileID: 705507994}
   IsUsingSkybox: 0
-  SkyColor: {r: 0.5188679, g: 0.5188679, b: 0.5188679, a: 1}
+  SkyColor: {r: 0.6132076, g: 0.24007654, b: 0.24007654, a: 1}
   MaxBounce: 10
   PhongAlpha: 15
   LightingMode: 0
   MeshCollisionMode: 1
-  SphereNumMax: 100
+  KdTreeLeafMax: 10
+  SphereNumMax: 0
   SphereRad: {x: 0.05, y: 0.3}
   SpherePlacementRad: 1
   IsSphereBobbing: 0
-  MaxRelitiveBob: 3
+  MaxRelativeBob: 3
   RandomSeed: 68675
 --- !u!114 &963194230
 MonoBehaviour:
@@ -455,6 +457,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   VSync: 1
   TargetFrameRate: -1
+--- !u!114 &963194231
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 963194225}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f4d1dd7852bc8d4581a86c71151b685, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ComponentComputeShader: {fileID: 7200000, guid: 519ed8f84b4cc2a4e9514b4ed5b4696e, type: 3}
+  GOLCameraPPE: {fileID: 2100000, guid: c4762bced05921940af81676db2ea062, type: 2}
+  CellSize: 20
+  AliveColor: {r: 1, g: 0, b: 0, a: 0}
+  DeadColor: {r: 1, g: 1, b: 1, a: 0}
+  GOLStateChange: {fileID: 7200000, guid: 67d1859efd563ba4aad0977e1e00738e, type: 3}
+  StateChangeWait: 1
 --- !u!1 &1145813924
 GameObject:
   m_ObjectHideFlags: 0

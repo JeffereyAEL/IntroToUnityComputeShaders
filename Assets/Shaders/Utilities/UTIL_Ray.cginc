@@ -121,4 +121,25 @@ void DebugCollision(inout Ray r, inout Hit best, AABox b) {
         best.Mat = Material_Construct(float3(1,0,0), FLOAT3(.2), FLOAT3(0.0f), .2f);
     }
 }
+
+KdTreeHitResult TraverseKdTree(Ray r, KdTreeNode n, float t_min, float t_max) {
+    if (n.LeafNum > 0)
+        return KdTreeHitResult_Construct(n.LeafNum, n.Leaves);
+    
+    float t = (n.SplitDist - r.Origin[n.SplitIdx]) / r.Dir[n.SplitIdx];
+    
+    if ( t <= t_min)
+        return TraverseKdTree(r, _KdTree[n.LChild], t_min, t_max);
+    if (t >= t_max)
+        return TraverseKdTree(r, _KdTree[n.RChild], t_min, t_max);
+    else
+    {
+        // traverse both children of the current node
+        KdTreeHitResult t_hit;
+        t_hit.LeafNum = 0;
+        t_hit = TraverseKdTree(r, _KdTree[n.LChild], t_min, t);
+        if (t_hit.LeafNum > 0) return t_hit; // return early, already collided
+        return TraverseKdTree(r, _KdTree[n.RChild], t_min, t);
+    }
+}
 #endif

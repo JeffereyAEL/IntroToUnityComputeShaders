@@ -109,7 +109,7 @@ namespace Source.Editor
                     obj.IsSphereBobbing = EditorGUILayout.Toggle("Sphere Bobbing", obj.IsSphereBobbing);
                     if (obj.IsSphereBobbing)
                     {
-                        obj.MaxRelitiveBob = EditorGUILayout.FloatField("Max Relative Bob", obj.MaxRelitiveBob);
+                        obj.MaxRelativeBob = EditorGUILayout.FloatField("Max Relative Bob", obj.MaxRelativeBob);
                     }
 
                     obj.RandomSeed = EditorGUILayout.IntField("Unity Random seed", obj.RandomSeed);

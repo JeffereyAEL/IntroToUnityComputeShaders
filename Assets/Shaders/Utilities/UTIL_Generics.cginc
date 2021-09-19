@@ -21,7 +21,7 @@ static const float NINF = -INF;
 static const float EPSILON = 1e-8;
 
 // MACROS
-/// Constructs a hardcoded uniform float3
+/// Constructs a uniform float3
 #define FLOAT3(value) float3(value, value, value)
 
 // FUNCTIONS
@@ -93,7 +93,7 @@ inline float IfBlend(float4 a, float4 b, uint is_a) {
     return a * is_a + b * (1 - is_a);
 }
 
-/// Compares floats given a margin of error
+/// Compares floats given a margin of error epsilon
 inline bool Equal(float a, float b) {
     return a > b - EPSILON && a < b + EPSILON;
 }
@@ -102,5 +102,13 @@ inline bool Equal(float a, float b, float margin) {
     return a > b - margin && a < b + margin;
 }
 
-/// if 
+/// reduces a give value to a specified range (doesn't clamp)
+inline float Unitize(float value, float min, float max) {
+    return (value - min) / max;
+}
+
+/// returns a value that is "alpha" percent between min and max
+inline float Lerp(float alpha, float min, float max) {
+    return (max - min) * alpha + min;
+}
 #endif
