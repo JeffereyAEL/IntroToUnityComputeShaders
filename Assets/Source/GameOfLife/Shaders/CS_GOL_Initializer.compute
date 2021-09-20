@@ -1,0 +1,22 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+ #include "Assets/Shaders/Utilities/UTIL_Generics.cginc"
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+
+RWTexture2D<float4> _StateMap;
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    // TODO: make the randomness more random, it creates a pattern too easily
+    uint a = Rand(id.x + id.y) % 2; // whether x or y will decide the augment mod
+    uint b = (Rand(id.x) % 2) * a + (Rand(id.y) % 2) * (1u - a); // whether x or y will augment the final seed
+    uint c = (Rand(id.y) % 2) * a + (Rand(id.x) % 2) * (1u - a); // whether the augment will + / -
+    
+    uint d = Rand(_Seed + id.x) * c + Rand(_Seed - id.x) * (1u - c);
+    uint e = Rand(_Seed + id.y) * c + Rand(_Seed - id.y) * (1u - c);
+    uint f = e * b + d * (1u - b);
+    _StateMap[id.xy] = float4(f%2u, 0.0f, 0.0f, 0.0f);
+}

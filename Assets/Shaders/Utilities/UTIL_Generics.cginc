@@ -7,8 +7,8 @@
 
 /// UNIFORMS
 extern float4x4 _CameraInverseProjection;
-extern float2 _Pixels;
-extern float _Seed;
+extern int2 _Pixels;
+extern uint _Seed;
 
 // CONSTANTS
 /// PI to 8 decimal places
@@ -27,9 +27,24 @@ static const float EPSILON = 1e-8;
 // FUNCTIONS
 /// Returns a random float
 float Rand() {
-    float result = frac(sin(_Seed / 100.0f * dot(_Pixels, float2(12.9898f, 78.233f))) * 43758.5453f);
-    _Seed += 1.0f;
-    return result;
+    uint state = _Seed;
+    state ^= 2747636419u;
+    state *= 2654435769u;
+    state ^= state >> 16;
+    state *= 2654435769u;
+    state ^= state >> 16;
+    state *= 2654435769u;
+    return float(state);
+}
+
+uint Rand(uint state) {
+    state ^= 2747636419u;
+    state *= 2654435769u;
+    state ^= state >> 16;
+    state *= 2654435769u;
+    state ^= state >> 16;
+    state *= 2654435769u;
+    return state;
 }
 
 /// Saturates the dot of x and y to [0.0f,1.0f] then weights with f
@@ -56,15 +71,15 @@ inline float Blend(float a, float b, float alpha) {
     return a * alpha + b * (1 - alpha);
 }
 /// returns a blend of A and B based on the alpha
-inline float Blend(float2 a, float2 b, float alpha) {
+inline float2 Blend(float2 a, float2 b, float alpha) {
     return a * alpha + b * (1 - alpha);
 }
 /// returns a blend of A and B based on the alpha
-inline float Blend(float3 a, float3 b, float alpha) {
+inline float3 Blend(float3 a, float3 b, float alpha) {
     return a * alpha + b * (1 - alpha);
 }
 /// returns a blend of A and B based on the alpha
-inline float Blend(float4 a, float4 b, float alpha) {
+inline float4 Blend(float4 a, float4 b, float alpha) {
     return a * alpha + b * (1 - alpha);
 }
 

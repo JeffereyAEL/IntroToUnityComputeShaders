@@ -471,11 +471,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ComponentComputeShader: {fileID: 7200000, guid: 519ed8f84b4cc2a4e9514b4ed5b4696e, type: 3}
   GOLCameraPPE: {fileID: 2100000, guid: c4762bced05921940af81676db2ea062, type: 2}
-  CellSize: 20
-  AliveColor: {r: 1, g: 0, b: 0, a: 0}
-  DeadColor: {r: 1, g: 1, b: 1, a: 0}
+  CellSize: {x: 5000, y: 5000}
+  TimeScale: 0.2
+  AliveColorA: {r: 0.6320754, g: 0, b: 0, a: 0}
+  AliveColorB: {r: 0.9339623, g: 0.4931401, b: 0, a: 0}
+  DeadColorA: {r: 0.38679248, g: 0.38679248, b: 0.38679248, a: 0}
+  DeadColorB: {r: 0, g: 0, b: 0, a: 0}
+  GOLSeed: 1
   GOLStateChange: {fileID: 7200000, guid: 67d1859efd563ba4aad0977e1e00738e, type: 3}
-  StateChangeWait: 1
+  GOLUpdate: {fileID: 7200000, guid: 519ed8f84b4cc2a4e9514b4ed5b4696e, type: 3}
+  GOLInitializer: {fileID: 7200000, guid: f08b75599cf7de042a2e44704e77b276, type: 3}
+  StateChangeWait: 0
 --- !u!1 &1145813924
 GameObject:
   m_ObjectHideFlags: 0

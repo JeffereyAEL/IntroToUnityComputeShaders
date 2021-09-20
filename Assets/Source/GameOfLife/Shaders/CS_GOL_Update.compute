@@ -4,14 +4,14 @@
 
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
-RWTexture2D<float4> Result;
-RWTexture2D<float4> _PrevFrame;
+Texture2D<float4> _OldStateMap;
+RWTexture2D<float4> _NewStateMap;
 float _DeltaTime;
-float _LifeLength;
 
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    Result[id.xy] = _PrevFrame[id.xy];
-    
+    float4 old_state = _OldStateMap[id.xy];
+    old_state.y += _DeltaTime;
+    _NewStateMap[id.xy] = old_state;
 }

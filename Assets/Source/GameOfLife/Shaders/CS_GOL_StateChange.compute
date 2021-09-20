@@ -7,34 +7,38 @@ Texture2D<float4> _OldStateMap;
 RWTexture2D<float4> _NewStateMap;
 int _MapWidth;
 int _MapHeight;
+float _DeltaTime;
 
-const float rule_map[2][8] = {
+static const float rule_map[2][8] = {
          {0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
          {0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}
 };
 
 [numthreads(8,8,1)]
-void CSMain (uint3 id : SV_DispatchThreadID)
-{
-    int2 pos = id.xy; // convert pixel pos into UV space
-    int2 cell_size = {1, 1}; // convert pixel size into UV space
-    
+void CSMain (uint3 id : SV_DispatchThreadID) {
+    // checking neighbors
     int num_neighbors = 0;
+    num_neighbors += _OldStateMap[int2(id.x + 1, id.y + 1)].x;
+    num_neighbors += _OldStateMap[int2(id.x, id.y + 1)].x;
+    num_neighbors += _OldStateMap[int2(id.x - 1, id.y + 1)].x;
     
-    num_neighbors += _OldStateMap[int2(pos.x + cell_size.x, pos.y + cell_size.y)].r;
-    num_neighbors += _OldStateMap[int2(pos.x, pos.y + cell_size.y)].r;
-    num_neighbors += _OldStateMap[int2(pos.x - cell_size.x, pos.y + cell_size.y)].r;
-
-    num_neighbors += _OldStateMap[int2(pos.x + cell_size.x, pos.y)].r;
-    num_neighbors += _OldStateMap[int2(pos.x - cell_size.x, pos.y)].r;
-
-    num_neighbors += _OldStateMap[int2(pos.x + cell_size.x, pos.y - cell_size.y)].r;
-    num_neighbors += _OldStateMap[int2(pos.x, pos.y - cell_size.y)].r;
-    num_neighbors += _OldStateMap[int2(pos.x - cell_size.x, pos.y - cell_size.y)].r;
-
-    num_neighbors = 3;
+    num_neighbors += _OldStateMap[int2(id.x + 1, id.y)].x;
+    num_neighbors += _OldStateMap[int2(id.x - 1, id.y)].x;
     
-    int old_state = _OldStateMap[pos].r;
+    num_neighbors += _OldStateMap[int2(id.x + 1, id.y - 1)].x;
+    num_neighbors += _OldStateMap[int2(id.x, id.y - 1)].x;
+    num_neighbors += _OldStateMap[int2(id.x - 1, id.y - 1)].x;
     
-    _NewStateMap[id.xy] = float4(rule_map[old_state][num_neighbors-1], 0.0f, 0.0f, 0.0f);
+    int old_state = _OldStateMap[id.xy].x;
+    int new_state = rule_map[old_state][num_neighbors-1];
+
+
+    
+    int b_state_persists = new_state & old_state | ~new_state&1 & (~old_state&1);
+    _NewStateMap[id.xy] = float4( new_state, // set the state of the cell
+                            (_NewStateMap[id.xy].y + _DeltaTime) * b_state_persists,
+    // ^ update the time in this state or multiple by zero if state isn't persistent (i.e. has changed)
+                            _NewStateMap[id.xy].z + b_state_persists * new_state,
+    // ^ increment amount of times revived
+                            0.0f);
 }
