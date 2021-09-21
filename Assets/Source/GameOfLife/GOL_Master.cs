@@ -155,18 +155,6 @@ namespace Source.Core
         
         protected void Start()
         {
-            //Randomly generate the board state
-            
-            // var temp = new Texture2D(CellSize.x, CellSize.y, TextureFormat.ARGB32, true);
-            // print($"Temp texture is of the format '{temp.format}'");
-            //
-            // var pixels = new Color[CellSize.x * CellSize.y];
-            // for (var i = 0; i < CellSize.x * CellSize.y; ++i)
-            //     pixels[i] = new Color(Random.Range(0,2), 0, 0, 0);
-            //
-            // temp.SetPixels(pixels);
-            // temp.Apply();
-            
             initRenderTexture(ref CurrStateMap, CellSize.x, CellSize.y, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default);
             var thread_groups_x = Mathf.CeilToInt(CurrStateMap.width / 8.0f);
             var thread_groups_y = Mathf.CeilToInt(CurrStateMap.height / 8.0f);

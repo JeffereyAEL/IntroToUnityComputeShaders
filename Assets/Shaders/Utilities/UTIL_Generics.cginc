@@ -7,8 +7,8 @@
 
 /// UNIFORMS
 extern float4x4 _CameraInverseProjection;
-extern int2 _Pixels;
-extern uint _Seed;
+extern float2 _Pixels;
+extern float _Seed;
 
 // CONSTANTS
 /// PI to 8 decimal places
@@ -26,15 +26,11 @@ static const float EPSILON = 1e-8;
 
 // FUNCTIONS
 /// Returns a random float
-float Rand() {
-    uint state = _Seed;
-    state ^= 2747636419u;
-    state *= 2654435769u;
-    state ^= state >> 16;
-    state *= 2654435769u;
-    state ^= state >> 16;
-    state *= 2654435769u;
-    return float(state);
+float Rand()
+{
+    float result = frac(sin(_Seed / 100.0f * dot(_Pixels, float2(12.9898f, 78.233f))) * 43758.5453f);
+    _Seed += 1.0f;
+    return result;
 }
 
 uint Rand(uint state) {
@@ -84,11 +80,11 @@ inline float4 Blend(float4 a, float4 b, float alpha) {
 }
 
 /// returns a if is_a else returns b
-inline float IfBlend(int a, int b, uint is_a) {
+inline int IfBlend(int a, int b, uint is_a) {
     return a * is_a + b * (1 - is_a);
 }
 /// returns a if is_a else returns b
-inline float IfBlend(uint a, uint b, uint is_a) {
+inline uint IfBlend(uint a, uint b, uint is_a) {
     return a * is_a + b * (1 - is_a);
 }
 /// returns a if is_a else returns b
@@ -96,15 +92,15 @@ inline float IfBlend(float a, float b, uint is_a) {
     return a * is_a + b * (1 - is_a);
 }
 /// returns a if is_a else returns b
-inline float IfBlend(float2 a, float2 b, uint is_a) {
+inline float2 IfBlend(float2 a, float2 b, uint is_a) {
     return a * is_a + b * (1 - is_a);
 }
 /// returns a if is_a else returns b
-inline float IfBlend(float3 a, float3 b, uint is_a) {
+inline float3 IfBlend(float3 a, float3 b, uint is_a) {
     return a * is_a + b * (1 - is_a);
 }
 /// returns a if is_a else returns b
-inline float IfBlend(float4 a, float4 b, uint is_a) {
+inline float4 IfBlend(float4 a, float4 b, uint is_a) {
     return a * is_a + b * (1 - is_a);
 }
 
