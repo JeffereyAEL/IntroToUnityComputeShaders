@@ -250,7 +250,6 @@ namespace Source.RayTracing
             New_sphere.Mat.Specular = me ? new Vector3(color.r, color.g, color.b) : Vector3.one * 0.04f;
             New_sphere.Mat.Emissive = em ? new Vector3(Random.value, Random.value, Random.value) : Vector3.zero;
             New_sphere.Mat.Roughness = Random.value;
-            // print("Created a sphere");
             return false;
         }
         protected override void setShaderParameters()
@@ -295,7 +294,7 @@ namespace Source.RayTracing
             // Blit the resulting texture to the screen
             if (MaterialAdditive == null)
             {
-                MaterialAdditive = new Material(Shader.Find("Hidden/IES_AddShader"));
+                MaterialAdditive = new Material(Shader.Find("RayTracing/PostProcessing/IES_RT_AdditiveShader"));
             }
             
             MaterialAdditive.SetFloat(_Sample, CurrentSample);

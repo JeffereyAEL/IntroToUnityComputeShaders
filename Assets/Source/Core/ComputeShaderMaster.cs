@@ -131,12 +131,11 @@ namespace Source.Core
             RenderTextureFormat Format = RenderTextureFormat.ARGBFloat,
             RenderTextureReadWrite Read_write = RenderTextureReadWrite.Linear)
         {
-            // If RenderTexture already initialized break
-            if (Tex != null && Tex.width == Width && Tex.height == Height) return;
-
-            // Release render Render_texture if already initialized
             if (Tex != null)
+            {
+                if (Tex.width == Width && Tex.height == Height) return;
                 Tex.Release();
+            }
 
             // Get render target for raytracing
             Tex = new RenderTexture(Width, Height, 0,

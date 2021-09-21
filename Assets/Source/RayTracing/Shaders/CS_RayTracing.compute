@@ -13,7 +13,6 @@
 // DEFINES
 // 
 // TODO: implement this and replace the macro-defined ground attributes 
-extern StructuredBuffer<Material> _GroundMat;
 #define GROUND_ALBEDO float3(1.0f, 1.0f, 1.0f)
 #define GROUND_SPECULAR float3(0.04f, 0.04f, 0.04f)
 #define GROUND_EMISSION  float3(0.0f, 0.0f, 0.0f)

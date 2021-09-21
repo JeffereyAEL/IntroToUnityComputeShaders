@@ -26,15 +26,11 @@ static const float EPSILON = 1e-8;
 
 // FUNCTIONS
 /// Returns a random float
-float Rand() {
-    uint state = _Seed;
-    state ^= 2747636419u;
-    state *= 2654435769u;
-    state ^= state >> 16;
-    state *= 2654435769u;
-    state ^= state >> 16;
-    state *= 2654435769u;
-    return float(state);
+float rand()
+{
+    float result = frac(sin(_Seed / 100.0f * dot(_Pixels, float2(12.9898f, 78.233f))) * 43758.5453f);
+    _Seed += 1.0f;
+    return result;
 }
 
 uint Rand(uint state) {
