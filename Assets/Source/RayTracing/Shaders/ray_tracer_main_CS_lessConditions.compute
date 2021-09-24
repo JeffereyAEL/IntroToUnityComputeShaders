@@ -1,4 +1,4 @@
-// Each #kernel tells which function to compile; you can have many kernels
+﻿// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
 #ifndef __RAY_TRACING__
@@ -9,22 +9,14 @@
 #include "Assets/Shaders/Utilities/UTIL_Graphics.cginc"
 #include "Assets/Shaders/Utilities/UTIL_Ray.cginc"
 
-// TODO: try implementing cbuffer types instead of structuredbuffers
+
 // DEFINES
-// 
 // TODO: implement this and replace the macro-defined ground attributes 
-#define GROUND_ALBEDO float3(1.0f, 1.0f, 1.0f)
-#define GROUND_SPECULAR float3(0.04f, 0.04f, 0.04f)
+#define GROUND_ALBEDO float3(1.0f, 0.0f, 1.0f)
+#define GROUND_SPECULAR float3(0.0f, 0.0f, 0.0f)
 #define GROUND_EMISSION  float3(0.0f, 0.0f, 0.0f)
-#define GROUND_ROUGHNESS 0.85f
+#define GROUND_ROUGHNESS 0.0f
 
-#define DIFFUSE 0
-#define SPECULAR 1
-#define DIFFUSE_SPECULAR 2
-
-#define RAW 0
-#define BOUNDS 1
-#define KDTREE 2
 
 // EXTERNS
 extern RWTexture2D<float4> Result;
@@ -32,7 +24,7 @@ extern RWTexture2D<float4> Result;
 extern uint _LightingMode;
 extern uint _MeshCollisionMode;
 
-const extern uint _MaxBounce;
+extern uint _MaxBounce;
 extern float4 _DirectionalLight;
 
 extern Texture2D<float4> _SkyboxTexture;
@@ -40,6 +32,7 @@ extern SamplerState sampler_SkyboxTexture;
 extern float3 _SkyColor;
 extern float _UsingSkybox;
 
+// TODO: try implementing cbuffer types instead of structuredbuffers
 extern StructuredBuffer<Sphere> _Spheres;
 extern StructuredBuffer<Mesh> _Meshes;
 extern StructuredBuffer<float3> _Vertices;
@@ -76,16 +69,12 @@ void IntersectSphere(Ray r, inout Hit best, Sphere s) {
     float3 d = r.Origin - s.Pos;
     float p1 = -dot(r.Dir, d);
     float p2sqr = p1 * p1 - dot(d,d) + s.Rad * s.Rad;
-    if (p2sqr < 0)
-        return;
+    // if (p2sqr < 0)
+    //     return;
     float p2 = sqrt(p2sqr);
     float t = p1 - p2 > 0 ? p1 - p2 : p1 + p2;
-    if (t > 0 && t < best.Dist)
-    {
-        best = Hit_Construct(r, t);
-        best.Norm = normalize(best.Pos - s.Pos);
-        best.Mat = s.Mat;
-    }
+    uint b_best = (t > 0 && t < best.Dist) && (p2sqr >= 0);
+    ApplyNewHit(best, r, t, best.Mat, s.Mat, b_best, normalize(best.Pos - s.Pos));
 }
 
 bool IntersectTriangle(Ray r, float3 a, float3 b, float3 c, inout float t, inout float u, inout float v) {
@@ -99,27 +88,28 @@ bool IntersectTriangle(Ray r, float3 a, float3 b, float3 c, inout float t, inout
     // if determinant is near zero, ray lies in plane of triangle
     float det = dot(edge1, pvec);
 
-    if (det < EPSILON) return false;
-    float inv_det = 1.0f / det; 
+    // use backface culling
+    bool culled = det < EPSILON; // return false
+    float inv_det = 1.0f / (det + EPSILON); // add epsilon to make sure things aren't zero
 
     // calc distance from a to r.Origin
     float3 tvec = r.Origin - a;
 
     // calc the U parameter and test bounds
     u = dot(tvec, pvec) * inv_det;
-   if (u < 0.0 || u > 1.0f) return false;
+    bool within_bounds_a = (u < 0.0 || u > 1.0f); // return false
 
     // prepare to test v parameter
     float3 qvec = cross(tvec, edge1);
 
     // calc v parameter and test bounds
     v = dot(r.Dir, qvec) * inv_det;
-    if (v < 0.0f || u + v > 1.0f) return false; 
+    bool within_bounds_b = (v < 0.0f || u + v > 1.0f); // return false
 
     // calc t, ray intersects triangle
     t = dot(edge2, qvec) * inv_det;
 
-    return true;
+    return !(culled || within_bounds_a || within_bounds_b);
 }
 
 void IntersectMeshObject(Ray r, inout Hit best, Mesh mesh)
@@ -133,17 +123,11 @@ void IntersectMeshObject(Ray r, inout Hit best, Mesh mesh)
         float3 c = _Vertices[_Indices[i + 2]];
         
         float t, u, v;
-        best.Mat = Material_Construct();
-        if (IntersectTriangle(r, a, b, c, t, u, v))
-        {
-            if (t > 0 && t < best.Dist)
-            {
-                // TODO: replace the position calc with barycentric coordinates instead of t & position
-                best = Hit_Construct(r, t);
-                best.Norm = normalize(cross(b - a, c - a));
-                best.Mat = mesh.Mat;
-            }
-        }
+        bool b_intersects = IntersectTriangle(r, a, b, c, t, u, v);
+        float b_best = b_intersects & (t > 0 && t < best.Dist);
+
+        ApplyNewHit(best, r, t, best.Mat, mesh.Mat, b_best,
+            normalize(cross(b - a, c - a)));
     }
 }
 
@@ -162,16 +146,12 @@ Hit Trace(Ray r) {
     for (i = 0; i < count; ++i)
         if (Collision(r, _Meshes[i].Bounds))
             IntersectMeshObject(r, best, _Meshes[i]);
-
+    
     return best;
 }
 
 float3 Shade(inout Ray r, Hit h) {
-    if (h.Dist < INF)   // We hit something
-    {
-        ChanceDiffuseSpecular(r, h);
-        return h.Mat.Emissive;
-    }
+    ChanceDiffuseSpecular(r, h);
     // if we hit nothing, set energy to zero, sky isn't reflective
     uint b_hit_sky = h.Dist == INF;
     r.ColorWeight *= float(b_hit_sky);
@@ -181,8 +161,8 @@ float3 Shade(inout Ray r, Hit h) {
     float phi = atan2(r.Dir.x, -r.Dir.z) / -PI * 0.5f;
     float3 tex = _SkyboxTexture.SampleLevel(sampler_SkyboxTexture, float2(phi, theta), 0.0f).xyz;
 
-    // blend sky color and skybox texture sample
-    return IfBlend(tex, _SkyColor, _UsingSkybox) * 1.1f;
+    // blend sky color and skybox texture sample and material from hit
+    return IfBlend(IfBlend(tex, _SkyColor, _UsingSkybox) * 1.1f, h.Mat.Emissive, b_hit_sky);
 }
 
 /// MAIN ===============================================================================================================
@@ -208,7 +188,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         Hit hit = Trace(ray);
         color += ray.ColorWeight * Shade(ray, hit);
         if (!any(ray.ColorWeight) || i == _MaxBounce + 1)
-             break;
+            break;
     }
     Result[id.xy] = float4(color, 1.0f);
 }

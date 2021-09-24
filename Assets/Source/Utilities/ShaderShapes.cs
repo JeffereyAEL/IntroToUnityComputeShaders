@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Collections.Generic;
+using JetBrains.Annotations;
 using UnityEngine;
 
 namespace Source.Utilities
@@ -44,7 +45,7 @@ namespace Source.Utilities
         [UsedImplicitly] public int IndicesCount;
         [UsedImplicitly] public ShaderMaterial Mat;
     };
-
+  
     public struct ShaderKdTreeNode
     {
         [UsedImplicitly] public int LChild, RChild; // indx in buffer
@@ -52,5 +53,18 @@ namespace Source.Utilities
         [UsedImplicitly] public float SplitDist;
         [UsedImplicitly] public int LeafNum;
         [UsedImplicitly] public int Leaves;
+    }
+
+    public static class Helpers
+    {
+        // private void SplitKdSpace();
+        //
+        // public delegate int Comparison<in ShaderKdTree>(ShaderKdTree X, ShaderKdTree Y) {
+        //     return 
+        // }
+        // public static List<ShaderKdTreeNode> GenerateKDTreeMap(List<Vector3> Points)
+        // {
+        //     Points.Sort();
+        // }
     }
 }

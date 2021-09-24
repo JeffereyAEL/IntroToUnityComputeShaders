@@ -37,8 +37,8 @@ namespace Source.Editor
         /// <param name="Value"> The value to adjust with the editor field </param>
         private static void getVec3FromColorField(string name, ref Vector3 Value)
         {
-            var color = EditorGUILayout.ColorField(name, Misc._ToRGBA(Value));
-            Value = Misc._ToRGB(color);
+            var color = EditorGUILayout.ColorField(name, Misc.ColorToRGBA(Value));
+            Value = Misc.Vector3ToRGB(color);
         }
         
         /// <summary>

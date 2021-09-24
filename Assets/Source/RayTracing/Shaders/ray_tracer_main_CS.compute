@@ -1,4 +1,4 @@
-// Each #kernel tells which function to compile; you can have many kernels
+﻿// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
 #ifndef __RAY_TRACING__
@@ -141,7 +141,7 @@ void IntersectMeshObject(Ray r, inout Hit best, Mesh mesh)
                 // TODO: replace the position calc with barycentric coordinates instead of t & position
                 best = Hit_Construct(r, t);
                 best.Norm = normalize(cross(b - a, c - a));
-                best.Mat = mesh.Mat;
+                best.Mat = Material_Construct(mesh.Mat);
             }
         }
     }

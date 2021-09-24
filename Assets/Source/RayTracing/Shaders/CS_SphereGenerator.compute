@@ -1,0 +1,19 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+#include "Assets/Shaders/Utilities/UTIL_Generics.cginc"
+#include "Assets/Shaders/Utilities/UTIL_Shapes.cginc"
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+StructuredBuffer<Sphere> _Spheres;
+
+[numthreads(64,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+//     // TODO: insert actual code here!
+//     int count, stride;
+//     _Spheres.GetDimensions(count, stride);
+//     uint out_of_bounds = id.x >= count;
+//     
+}
