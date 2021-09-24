@@ -80,7 +80,7 @@ inline float4 Blend(float4 a, float4 b, float alpha) {
 }
 
 /// returns a if is_a else returns b
-inline int IfBlend(int a, int b, uint is_a) {
+inline int IfBlend(int a, int b, int is_a) {
     return a * is_a + b * (1 - is_a);
 }
 /// returns a if is_a else returns b
@@ -88,19 +88,19 @@ inline uint IfBlend(uint a, uint b, uint is_a) {
     return a * is_a + b * (1 - is_a);
 }
 /// returns a if is_a else returns b
-inline float IfBlend(float a, float b, uint is_a) {
+inline float IfBlend(float a, float b, float is_a) {
     return a * is_a + b * (1 - is_a);
 }
 /// returns a if is_a else returns b
-inline float2 IfBlend(float2 a, float2 b, uint is_a) {
+inline float2 IfBlend(float2 a, float2 b, float is_a) {
     return a * is_a + b * (1 - is_a);
 }
 /// returns a if is_a else returns b
-inline float3 IfBlend(float3 a, float3 b, uint is_a) {
+inline float3 IfBlend(float3 a, float3 b, float is_a) {
     return a * is_a + b * (1 - is_a);
 }
 /// returns a if is_a else returns b
-inline float4 IfBlend(float4 a, float4 b, uint is_a) {
+inline float4 IfBlend(float4 a, float4 b, float is_a) {
     return a * is_a + b * (1 - is_a);
 }
 

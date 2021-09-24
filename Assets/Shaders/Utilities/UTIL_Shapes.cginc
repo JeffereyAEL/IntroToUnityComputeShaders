@@ -30,7 +30,7 @@ Material Material_Construct(float3 a, float3 s, float3 e, float r) {
 }
 
 /// Setter constructor for the Material struct
-Material Material_Construct(Material m) {
+Material Material_Construct(in Material m) {
     Material mat;
     mat.Albedo = m.Albedo;
     mat.Specular = m.Specular;

@@ -325,12 +325,12 @@ MonoBehaviour:
   LightingMode: 2
   MeshCollisionMode: 1
   KdTreeLeafMax: 10
-  SphereNumMax: 0
+  SphereNumMax: 1
   SphereRad: {x: 0.05, y: 0.3}
   SpherePlacementRad: 10
   IsSphereBobbing: 0
   MaxRelativeBob: 3
-  RandomSeed: 68675
+  RandomSeed: 345623456
 --- !u!114 &963194230
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -576,7 +576,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22e6bc3dab884b8495bffca1bc98f10f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Albedo: {x: 1, y: 1, z: 1}
+  Albedo: {x: 1, y: 0, z: 0}
   Specular: {x: 0.20392157, y: 0.20392157, z: 0.20392157}
-  Emissive: {x: 0.14150941, y: 0.14150941, z: 0.14150941}
+  Emissive: {x: 0, y: 0, z: 0}
   Roughness: 0.15

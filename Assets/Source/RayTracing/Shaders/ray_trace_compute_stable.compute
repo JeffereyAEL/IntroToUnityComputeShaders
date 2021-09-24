@@ -1,4 +1,4 @@
-// Each #kernel tells which function to compile; you can have many kernels
+﻿// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
 #ifndef __RAY_TRACING__
@@ -19,7 +19,6 @@
 #define GROUND_ROUGHNESS 0.85f
 static const Material _GroundMat = Material_Construct(GROUND_ALBEDO, GROUND_SPECULAR,
                                     GROUND_EMISSION, GROUND_ROUGHNESS);
-static const float3 _GroundNorm = float3(0.0f, 1.0f, 0.0f);
 
 #define DIFFUSE 0
 #define SPECULAR 1
@@ -52,17 +51,6 @@ extern AABox _SceneBounds;
 
 extern float2 _PixelOffset;
 
-void ApplyBestHit(inout Hit best, Ray r, float d, float3 normal,
-    Material best_mat, Material obj_mat, bool b_best) {
-    best.Pos = IfBlend(r.Origin + d * r.Dir, best.Pos, b_best);
-    best.Dist = IfBlend(d, best.Dist, b_best);
-    best.Norm = IfBlend(normal, best.Norm, b_best);
-    best.Mat.Albedo = IfBlend(obj_mat.Albedo, best_mat.Albedo, b_best);
-    best.Mat.Specular = IfBlend(obj_mat.Specular, best_mat.Specular, b_best);
-    best.Mat.Roughness = IfBlend(obj_mat.Roughness, best_mat.Roughness, b_best);
-    best.Mat.Emissive = IfBlend(obj_mat.Emissive, best_mat.Emissive, b_best);
-}
-
 // INTERSECTIONS 
 void IntersectGroundPlane(Ray r, inout Hit best) {
     // calc the distance along the ray where the ground plane is intersected
@@ -79,18 +67,11 @@ void IntersectSphere(Ray r, inout Hit best, Sphere s) {
     float3 d = r.Origin - s.Pos;
     float p1 = -dot(r.Dir, d);
     float p2sqr = p1 * p1 - dot(d,d) + s.Rad * s.Rad;
-
-    if (p2sqr < 0) return;
-    
+    if (p2sqr < 0)
+        return;
     float p2 = sqrt(p2sqr);
+    float t = p1 - p2 > 0 ? p1 - p2 : p1 + p2;
     
-    float t = IfBlend(p1-p2, p1+p2, p1 - p2 > 0);
-    if ((t > 0 && t < best.Dist) && p2sqr >= 0)
-    {
-        best = Hit_Construct(r, t);
-        best.Norm = normalize(best.Pos - s.Pos);
-        best.Mat = s.Mat;
-    }
 }
 
 bool IntersectTriangle(Ray r, float3 a, float3 b, float3 c, inout float t, inout float u, inout float v) {
@@ -149,7 +130,7 @@ void IntersectMeshObject(Ray r, inout Hit best, Mesh mesh)
                 // TODO: replace the position calc with barycentric coordinates instead of t & position
                 best = Hit_Construct(r, t);
                 best.Norm = normalize(cross(b - a, c - a));
-                best.Mat = mesh.Mat;
+                best.Mat = Material_Construct(mesh.Mat);
             }
         }
     }
@@ -167,17 +148,45 @@ Hit Trace(Ray r) {
         IntersectSphere(r, best, _Spheres[i]);
 
     _Meshes.GetDimensions(count, stride);
-    for (i = 0; i < count; ++i)
-        if (Collision(r, _Meshes[i].Bounds))
+    switch (_MeshCollisionMode)
+    {
+    case RAW:
+        for (i = 0; i < count; ++i)
             IntersectMeshObject(r, best, _Meshes[i]);
+        break;
+    case BOUNDS:
+        for (i = 0; i < count; ++i)
+            if (Collision(r, _Meshes[i].Bounds))
+                IntersectMeshObject(r, best, _Meshes[i]);
+        break;
+    case KDTREE:
+        break;
+    default:
+        break;
+    }
     
+
     return best;
 }
 
 float3 Shade(inout Ray r, Hit h) {
     if (h.Dist < INF)   // We hit something
     {
-        ChanceDiffuseSpecular(r, h);
+        switch (_LightingMode)
+        {
+        case DIFFUSE:
+            LambertDiffuse(r, h);
+            break;
+        case SPECULAR:
+            PhongSpecular(r, h);
+            break;
+        case DIFFUSE_SPECULAR:
+            ChanceDiffuseSpecular(r, h);
+            break;
+        
+        default:
+            break; // there are no defaults
+        }
         return h.Mat.Emissive;
     }
     // else, we hit nothing, return the skybox tex n zero energy, sky isn't reflective
